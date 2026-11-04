@@ -1,0 +1,3439 @@
+diff --git a/.gitignore b/.gitignore
+index 51fad91..98ce559 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -190,3 +190,8 @@ Thumbs.db
+ desktop.ini
+ .idea/
+ *.swp
++
++# Generated synthetic databases and Python caches
++tests/corpus/generated/
++__pycache__/
++*.pyc
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index 1a2e8b6..b8877ae 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -1,6 +1,6 @@
+ # Contributing to Anne's Base
+ 
+-Thank you for your interest. Anne's Base is in the **planning stage — there is no code yet**, so the most useful contributions right now are:
++Thank you for your interest. Anne's Base has an **early browser command shell; the database engine is not implemented**. Useful contributions include shell improvements, tests and:
+ 
+ - **Feedback on the plan:** missing commands, wrong command placement, menu arrangements that differ from the programs they model, ideas from other database programs, and corrections to [docs/INNOVATIONS.md](docs/INNOVATIONS.md), [docs/MENUS-PLAN.md](docs/MENUS-PLAN.md), [docs/FORMATS-PLAN.md](docs/FORMATS-PLAN.md) or [docs/QAT.md](docs/QAT.md). Edit [docs/commands-plan.src.txt](docs/commands-plan.src.txt) or [docs/menus-plan.src.txt](docs/menus-plan.src.txt) and run `python3 scripts/gen-plan.py`; it fails on unknown ids, duplicate ids and shortcut conflicts. Open an issue with the *Feature request* template.
+ - **Test files:** databases you made yourself (or that are openly licensed) from Access (any version), dBASE, FoxPro, Clipper, Paradox, FileMaker exports, Approach, Works, Q&A, R:BASE, DataEase, Alpha Four, LibreOffice Base and the rest, with made-up data; damaged files for the recovery engine. Do not attach files you do not have the right to share or that contain real people's information.
+@@ -15,9 +15,9 @@ Thank you for your interest. Anne's Base is in the **planning stage — there is
+ - **American English** in the interface, code comments and documentation.
+ - **Licenses.** Contributions are accepted under the MIT License. New dependencies must use a permissive license (MIT, BSD, Apache 2.0, ISC, public domain, SIL OFL for fonts).
+ 
+-## When code exists
++## Development checks
+ 
+-The workflow will match the sister apps:
++Use Node.js 24 LTS. The current web scaffold supports:
+ 
+ ```bash
+ npm ci
+diff --git a/QuillBase.meta.json b/QuillBase.meta.json
+deleted file mode 100644
+index 8a95f77..0000000
+--- a/QuillBase.meta.json
++++ /dev/null
+@@ -1,80 +0,0 @@
+-{
+-  "name": "Anne's Base",
+-  "description": "An original, open-source desktop database for tables, queries, forms, reports, macros and code, with every command of Access and the classic database programs, AI assistance and database repair and recovery. Clean-room alternative with a familiar workflow. Part of the Anne's Office suite.",
+-  "homepage": "",
+-  "topics": [
+-    "database",
+-    "desktop-database",
+-    "relational-database",
+-    "sql",
+-    "sqlite",
+-    "query-builder",
+-    "forms",
+-    "reports",
+-    "database-repair",
+-    "data-recovery",
+-    "text-to-sql",
+-    "ai-assistant",
+-    "access-alternative",
+-    "dbase",
+-    "office-suite",
+-    "annes-office-suite",
+-    "android",
+-    "electron",
+-    "pwa",
+-    "clean-room"
+-  ],
+-  "keywords": [
+-    "annes-base",
+-    "annes-office-suite",
+-    "database",
+-    "desktop-database",
+-    "relational-database",
+-    "no-code",
+-    "low-code",
+-    "sql",
+-    "sqlite",
+-    "sqlcipher",
+-    "postgresql",
+-    "mysql",
+-    "sql-server",
+-    "odbc",
+-    "query-by-example",
+-    "query-builder",
+-    "forms",
+-    "reports",
+-    "mailing-labels",
+-    "macros",
+-    "vba",
+-    "xbase",
+-    "dbase",
+-    "foxpro",
+-    "clipper",
+-    "paradox",
+-    "filemaker",
+-    "lotus-approach",
+-    "accdb",
+-    "mdb",
+-    "dbf",
+-    "gedcom",
+-    "data-cleaning",
+-    "deduplication",
+-    "database-repair",
+-    "compact-and-repair",
+-    "data-recovery",
+-    "deleted-record-recovery",
+-    "text-to-sql",
+-    "natural-language-query",
+-    "ai-assistant",
+-    "access-alternative",
+-    "office-suite",
+-    "offline",
+-    "pwa",
+-    "capacitor",
+-    "electron",
+-    "android",
+-    "ios"
+-  ],
+-  "appId": "io.github.socrtwo.quillbase",
+-  "iconColor": "#A3324F"
+-}
+diff --git a/README.md b/README.md
+index 60f8107..d760e03 100644
+--- a/README.md
++++ b/README.md
+@@ -4,7 +4,28 @@
+ 
+ An original, open-source desktop database for Android, iOS, Windows, macOS, Linux, ChromeOS and the web, in the tradition of Microsoft Access: tables, queries, forms, reports, macros and code in one file, for people who are not database administrators. Its goal is the same as the rest of the Anne's Office suite: **no missing commands**. Anne's Base gathers the commands of Access (including features Access has retired), of the classic database programs (dBASE, FoxPro and Visual FoxPro, Clipper, Paradox, FileMaker, Lotus Approach, Works, Q&A, R:BASE, DataEase, Alpha Four, HyperCard), of the open-source and server tools (LibreOffice Base, Kexi, SQLite, PostgreSQL, MySQL, SQL Server Management Studio, DBeaver, DuckDB) and of the web databases (Airtable, Notion, Quickbase, Power Apps), adds ideas of its own, and has an **AI** tab and menu for asking questions of your data, designing databases, writing queries and code, cleaning data and diagnosing damage. Every feature is a command, and every command can be put on the Quick Access Bar, on your own tab, in any classic menu layout, on a keyboard shortcut, in a macro, and found with command search. When a database is damaged, Anne's Base shows what it can recover instead of refusing to open it.
+ 
+-> **Status: planning — no code yet.** This repository holds the plan: the feature survey, the command inventory, the classic menu layouts, the AI, formats, recovery and code plans, the intended architecture and the roadmap. Nothing here is built or released. Issues and discussion about the plan are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
++> **Status: early M1 shell preview.** Command search, ribbon groups, classic menu layouts and a persistent Quick Access Bar run in the browser. Database creation, file opening, editing, queries, recovery and AI are not implemented. Planned commands are visibly unavailable. No platform releases have been published. The documents below describe the intended application; see [CONTRIBUTING.md](CONTRIBUTING.md).
++
++## Run the preview
++
++Install Node.js 24 LTS, then run from this repository:
++
++```bash
++# Termux: pkg install nodejs-lts python
++npm ci
++npm run dev
++```
++
++Open `http://localhost:5173` in your browser. The dev server listens on all interfaces for device testing. Command search covers all 693 planned commands; it searches labels, ids, groups and notes. Pin or unpin commands from search results, or use **Add All Choices** for the standard Quick Access set. The default classic menu layout is Access 2003 style; its historical fidelity still needs verification. Pinning and menu layout are saved in browser storage when available.
++
++```bash
++npm test             # registry, catalog, preferences and shell interactions
++npm run build        # type check and production web build in dist/
++python3 scripts/gen-plan.py --check
++python3 -m unittest discover -s tests -p 'test_*.py' -v
++```
++
++See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code that exists today. Capacitor, Electron, PWA/offline support and the SQLite engine remain upcoming M1 work.
+ 
+ ## The plan in brief
+ 
+@@ -36,7 +57,7 @@ Each release will have builds for **Android** (APK and AAB), **iOS/iPadOS** (an
+ | **Anne's Press** | Desktop publishing | https://github.com/socrtwo/QuillPress |
+ | **Anne's Folio** | PDF | https://github.com/socrtwo/QuillFolio |
+ | **Anne's Lens** | Pictures | https://github.com/socrtwo/QuillLens |
+-| **Anne's Base** | Databases (this project) | https://github.com/socrtwo/QuillBase |
++| **Anne's Base** | Databases (this project) | https://github.com/socrtwo/AnnesBase |
+ 
+ The apps share one application shell: command registry, Quick Access Bar, customizable tabs and keyboard, command search, macro recorder, AI setup wizard and providers, recovery engine and platform layer. Anne's Base sends mail merges, labels and form letters to Anne's Pen, live tables to Anne's Grid, catalogs and directories to Anne's Press, searchable web directories and published apps to Anne's Loom, reports to Anne's Folio, and e-mail through Anne's Post; it takes OCR text from Anne's Folio and Anne's Lens for Records from Documents.
+ 
+@@ -60,6 +81,8 @@ The apps share one application shell: command registry, Quick Access Bar, custom
+ 
+ The command and menu plans are generated: edit [docs/commands-plan.src.txt](docs/commands-plan.src.txt) or [docs/menus-plan.src.txt](docs/menus-plan.src.txt) and run `python3 scripts/gen-plan.py` (it also checks ids, menu references and shortcut conflicts).
+ 
++The [synthetic test corpus](tests/corpus/README.md) supplies intact and damaged SQLite fixtures for future storage and recovery work. Generate it with `python3 scripts/gen-corpus.py`; run its checks with `python3 -m unittest discover -s tests -p 'test_*.py' -v`. Both use only Python's standard library and work in Termux.
++
+ ## Project language
+ 
+ The interface, code comments and documentation use American English.
+diff --git a/docs/AI-PLAN.md b/docs/AI-PLAN.md
+index 1d7d4a4..de65989 100644
+--- a/docs/AI-PLAN.md
++++ b/docs/AI-PLAN.md
+@@ -1,6 +1,6 @@
+ # AI plan
+ 
+-> **Plan.** Anne's Base has no code yet. This document fixes what the **AI** tab and the **AI** menu (present in every classic menu layout) will do, which services they use, and the rules for privacy, accuracy and cost. Command ids are in [COMMANDS-PLAN.md](COMMANDS-PLAN.md#ai).
++> **Plan.** Anne's Base has an early command shell; database features are not implemented yet. This document fixes what the **AI** tab and the **AI** menu (present in every classic menu layout) will do, which services they use, and the rules for privacy, accuracy and cost. Command ids are in [COMMANDS-PLAN.md](COMMANDS-PLAN.md#ai).
+ 
+ The AI tab is optional. Nothing is sent anywhere until you run an AI command, and every AI command is an ordinary command: it can go on the Quick Access Bar, on a custom tab, in any menu layout, on a shortcut, or in a macro.
+ 
+diff --git a/docs/ARCHITECTURE-PLAN.md b/docs/ARCHITECTURE-PLAN.md
+index 8431e30..24bce0c 100644
+--- a/docs/ARCHITECTURE-PLAN.md
++++ b/docs/ARCHITECTURE-PLAN.md
+@@ -1,6 +1,6 @@
+ # Architecture plan
+ 
+-> **This is a plan, not a description of existing code.** Anne's Base has no code yet. The design mirrors what the sister apps already ship (Anne's Pen, Anne's Grid, Anne's Stage, Anne's Folio), so that the suite shares one shell and one set of conventions. Details will change as the code is written; this file will then be replaced by `docs/ARCHITECTURE.md`.
++> **This is a plan, not a description of existing code.** Anne's Base has an early command shell; database features are not implemented yet. The design mirrors what the sister apps already ship (Anne's Pen, Anne's Grid, Anne's Stage, Anne's Folio), so that the suite shares one shell and one set of conventions. See [ARCHITECTURE.md](ARCHITECTURE.md) for what exists today; this plan records the remaining intended architecture.
+ 
+ ## Summary
+ 
+diff --git a/docs/CODE-PLAN.md b/docs/CODE-PLAN.md
+index a71af5c..441c66b 100644
+--- a/docs/CODE-PLAN.md
++++ b/docs/CODE-PLAN.md
+@@ -1,6 +1,6 @@
+ # Code plan: macros, Basic, xBase, JavaScript and the object model
+ 
+-> **Plan.** Anne's Base has no code yet. This document fixes how databases are automated: Access-style macros and data macros, a VBA-compatible Basic, an xBase interpreter for dBASE/FoxPro/Clipper programs, the suite's JavaScript macros, and the object model they share. Commands are on the Create, Macro, xBase and Developer tabs ([COMMANDS-PLAN.md](COMMANDS-PLAN.md)).
++> **Plan.** Anne's Base has an early command shell; database features are not implemented yet. This document fixes how databases are automated: Access-style macros and data macros, a VBA-compatible Basic, an xBase interpreter for dBASE/FoxPro/Clipper programs, the suite's JavaScript macros, and the object model they share. Commands are on the Create, Macro, xBase and Developer tabs ([COMMANDS-PLAN.md](COMMANDS-PLAN.md)).
+ 
+ ## Principles
+ 
+diff --git a/docs/COMMANDS-PLAN.md b/docs/COMMANDS-PLAN.md
+index f70067b..3290bf2 100644
+--- a/docs/COMMANDS-PLAN.md
++++ b/docs/COMMANDS-PLAN.md
+@@ -1,6 +1,6 @@
+ # Command inventory plan
+ 
+-> **Plan.** Anne's Base has no code yet. This is the planned command inventory: every command of Microsoft Access and of the major database programs past and present, tab by tab, with the command id Anne's Base will use and where the idea comes from, plus commands that are new in Anne's Base. It is generated by `scripts/gen-plan.py` from [commands-plan.src.txt](commands-plan.src.txt); edit that file, not this one. When the app exists, `npm run catalog` will generate `docs/COMMANDS.md` from the command registry, and this plan will be retired.
++> **Plan.** Anne's Base has an early command shell; database features are not implemented yet. This is the planned command inventory: every command of Microsoft Access and of the major database programs past and present, tab by tab, with the command id Anne's Base will use and where the idea comes from, plus commands that are new in Anne's Base. It is generated by `scripts/gen-plan.py` from [commands-plan.src.txt](commands-plan.src.txt); edit that file, not this one. When the app exists, `npm run catalog` will generate `docs/COMMANDS.md` from the command registry, and this plan will be retired.
+ 
+ **693 commands** in 16 tabs (129 of them new ideas). Every command will be usable on the Quick Access Bar, on custom tabs, in every classic menu layout ([MENUS-PLAN.md](MENUS-PLAN.md)), on a keyboard shortcut, in a macro and in command search (Alt+Q). Commands marked *not in tabs* have no default place on a tab but are reachable everywhere else, so nothing is hidden.
+ 
+diff --git a/docs/FORMATS-PLAN.md b/docs/FORMATS-PLAN.md
+index 6a13ac2..07cfb5b 100644
+--- a/docs/FORMATS-PLAN.md
++++ b/docs/FORMATS-PLAN.md
+@@ -1,6 +1,6 @@
+ # File formats and connections (plan)
+ 
+-> **Plan.** Anne's Base has no code yet. This lists every database and data format Anne's Base intends to open, link, import or save, current and historical, with the planned fidelity and the public sources the work will be based on. Recognition is by content, not extension: *File ▸ Open* reads the first bytes and picks the reader. Commands are in [COMMANDS-PLAN.md](COMMANDS-PLAN.md#external-data).
++> **Plan.** Anne's Base has an early command shell; database features are not implemented yet. This lists every database and data format Anne's Base intends to open, link, import or save, current and historical, with the planned fidelity and the public sources the work will be based on. Recognition is by content, not extension: *File ▸ Open* reads the first bytes and picks the reader. Commands are in [COMMANDS-PLAN.md](COMMANDS-PLAN.md#external-data).
+ 
+ Legend — **Open**: works as a live database (read and write). **Import**: data (and objects where noted) copied into a `.qbase`. **Link**: tables used in place. **Export**: written out. *R* read, *W* write.
+ 
+diff --git a/docs/INNOVATIONS.md b/docs/INNOVATIONS.md
+index 0efe714..812f7d4 100644
+--- a/docs/INNOVATIONS.md
++++ b/docs/INNOVATIONS.md
+@@ -1,6 +1,6 @@
+ # Innovations survey
+ 
+-> **Plan.** Anne's Base has no code yet. This survey records the database programs, past and present, whose commands and ideas Anne's Base adopts, and what it takes from each. Command ids are in [COMMANDS-PLAN.md](COMMANDS-PLAN.md); the origin codes there (ACC, DB, PDX…) refer to the programs below.
++> **Plan.** Anne's Base has an early command shell; database features are not implemented yet. This survey records the database programs, past and present, whose commands and ideas Anne's Base adopts, and what it takes from each. Command ids are in [COMMANDS-PLAN.md](COMMANDS-PLAN.md); the origin codes there (ACC, DB, PDX…) refer to the programs below.
+ 
+ ## How to read this
+ 
+diff --git a/docs/LEGAL.md b/docs/LEGAL.md
+index b384ab8..198be9d 100644
+--- a/docs/LEGAL.md
++++ b/docs/LEGAL.md
+@@ -1,6 +1,6 @@
+ # Clean-room, trademark and licensing notes
+ 
+-This file records how Anne's Base will provide the complete command set of Microsoft Access and the other database programs while avoiding other vendors' trademarks and copyrights. It summarizes the practice the other Anne's Office apps follow; it is not legal advice. Anne's Base has no code yet, so this file states the rules the code will be written under.
++This file records how Anne's Base will provide the complete command set of Microsoft Access and the other database programs while avoiding other vendors' trademarks and copyrights. It summarizes the practice the other Anne's Office apps follow; it is not legal advice. Anne's Base has an early command shell; this file states the rules for existing and future code.
+ 
+ ## What is reproduced, and why it is safe
+ 
+diff --git a/docs/QAT.md b/docs/QAT.md
+index f5ed021..6b80ab6 100644
+--- a/docs/QAT.md
++++ b/docs/QAT.md
+@@ -1,6 +1,6 @@
+ # Quick Access Bar plan
+ 
+-> **Plan.** Anne's Base has no code yet. This document fixes what the Quick Access Bar (QAT) will offer. It follows the implementation already shipped in the sister apps (`QAT_STANDARD`, `QAT_EXTRAS`, `addAllQatChoices` in the shared shell).
++> **Plan.** Anne's Base has an early command shell; database features are not implemented yet. This document fixes what the Quick Access Bar (QAT) will offer. It follows the implementation already shipped in the sister apps (`QAT_STANDARD`, `QAT_EXTRAS`, `addAllQatChoices` in the shared shell).
+ 
+ ## Principles
+ 
+diff --git a/docs/RECOVERY-PLAN.md b/docs/RECOVERY-PLAN.md
+index f2c2dcb..34f690e 100644
+--- a/docs/RECOVERY-PLAN.md
++++ b/docs/RECOVERY-PLAN.md
+@@ -1,6 +1,6 @@
+ # Recovery plan: damaged databases
+ 
+-> **Plan.** Anne's Base has no code yet. This is the design of its repair and recovery pipeline, the database counterpart of the recovery engines in the sister apps, descended from the author's [Immortal Unzipper / Immortal Zip](https://socrtwo.github.io/Immortal-Zip/), [Word Recovery](https://github.com/socrtwo/wordrecovery-SF) and [Universal File Repair Tool](https://github.com/socrtwo/Universal-File-Repair-Tool) projects. Commands are on the **Repair & Recovery** tab ([COMMANDS-PLAN.md](COMMANDS-PLAN.md#repair--recovery)).
++> **Plan.** Anne's Base has an early command shell; database features are not implemented yet. This is the design of its repair and recovery pipeline, the database counterpart of the recovery engines in the sister apps, descended from the author's [Immortal Unzipper / Immortal Zip](https://socrtwo.github.io/Immortal-Zip/), [Word Recovery](https://github.com/socrtwo/wordrecovery-SF) and [Universal File Repair Tool](https://github.com/socrtwo/Universal-File-Repair-Tool) projects. Commands are on the **Repair & Recovery** tab ([COMMANDS-PLAN.md](COMMANDS-PLAN.md#repair--recovery)).
+ 
+ ## Principles
+ 
+diff --git a/docs/ROADMAP.md b/docs/ROADMAP.md
+index 1c59df3..ab85780 100644
+--- a/docs/ROADMAP.md
++++ b/docs/ROADMAP.md
+@@ -1,24 +1,33 @@
+ # Roadmap
+ 
+-> **Plan.** Anne's Base has no code yet. Milestones are ordered by dependency, not by date. Each milestone from M1 on ends with a tagged prerelease built for every platform by the release workflow. Command ids refer to [COMMANDS-PLAN.md](COMMANDS-PLAN.md).
++> **In progress: early M1 shell.** The browser scaffold exists; the database engine and platform packaging do not. Milestones are ordered by dependency, not by date. The release goal for each milestone from M1 on is a tagged prerelease built for every platform; that workflow is not implemented yet. Command ids refer to [COMMANDS-PLAN.md](COMMANDS-PLAN.md).
+ 
+ ## M0 — Planning (this repository)
+ 
+ - [x] README, feature survey ([INNOVATIONS.md](INNOVATIONS.md)), command inventory ([COMMANDS-PLAN.md](COMMANDS-PLAN.md), generated from [commands-plan.src.txt](commands-plan.src.txt)), classic menu layouts ([MENUS-PLAN.md](MENUS-PLAN.md)), Quick Access Bar plan ([QAT.md](QAT.md)), AI plan ([AI-PLAN.md](AI-PLAN.md)), formats ([FORMATS-PLAN.md](FORMATS-PLAN.md)), recovery ([RECOVERY-PLAN.md](RECOVERY-PLAN.md)), code ([CODE-PLAN.md](CODE-PLAN.md)), architecture ([ARCHITECTURE-PLAN.md](ARCHITECTURE-PLAN.md)), legal notes, license, contributing guide and issue templates.
+ - [x] `scripts/gen-plan.py` validates ids, menu references, origins and shortcut conflicts.
++- [x] Planning-stage CI validates plans, metadata and the synthetic corpus on Linux and Windows with Python 3.10 and 3.13; checks Termux setup script syntax on Linux. Application builds and release workflows remain in M1.
+ - [ ] Verify the classic menu arrangements and default keys against installed copies or published manuals of Access 2003 and current Access, dBASE III Plus and IV, FoxPro 2.6 for DOS, Visual FoxPro 9, Paradox 4.5 for DOS and Paradox for Windows, FileMaker Pro, Lotus Approach 97, Works, LibreOffice Base, SSMS and DBeaver, and correct [menus-plan.src.txt](menus-plan.src.txt).
+ - [ ] Collect an openly licensed test corpus: databases from each program in FORMATS-PLAN.md (made for the project or redistributable), and generated damaged files.
++  - [x] Synthetic SQLite seed corpus: intact relational data, damaged header, damaged secondary index and truncation; provenance, logical ground truth and read-only validation tests. See [tests/corpus/README.md](../tests/corpus/README.md).
++  - [ ] Add Access, xBase, Paradox and other format samples, WAL/journal damage and recovery-score assertions as their readers arrive.
+ - [ ] Confirm the license of every on-device model candidate in AI-PLAN.md and of the optional DuckDB module.
+ 
+ ## M1 — Shell, engine and tables
+ 
+ - Project scaffold: TypeScript, Vite, vitest, Capacitor 8 (Android, iOS), Electron, PWA manifest and service worker; CI and release workflows from the sister apps.
++  - [x] TypeScript/Vite browser entry, vitest, lockfile and web validation CI (`npm ci`, tests, type check and production build).
++  - [ ] Capacitor, Electron, PWA/offline support and multiplatform release workflows.
+ - Suite shell: command registry, ribbon, Quick Access Bar with **Add All Choices** (`view.qatAddAll`), Customize Ribbon and Keyboard, command search, Backstage, preferences, settings import/export, portable mode.
++  - [x] Registry for every planned command, search, ribbon groups, Quick Access pin/unpin/clear, standard and extra choices with Save/Print first, and browser-persisted pins/menu selection. Execution requires a real handler; unimplemented commands stay unavailable.
++  - [ ] Custom ribbon/key bindings, Backstage, broader preferences, import/export and portable mode; integrate suite shell conventions as features arrive.
+ - **Classic menu bar** with the Access 2003 layout (default) and View ▸ Menus.
++  - [x] Render all 15 planned layouts and nested menus with a layout selector; default to Access 2003 style.
++  - [ ] Verify historical arrangements (M0), implement the View ▸ Menus command and complete menu keyboard navigation.
+ - Storage engine: SQLite WASM, `.qbase` catalog, **journal**, snapshots, encryption.
+ - Navigation pane and Database window; Table Datasheet and Design views with every field type, properties, validation, indexes, lookups; record commands, sort and filter (selection, form, advanced), find and replace, totals row.
+ - Undo Delete, Record History, Show Table as of (the journal's first uses).
+-- A catalog test comparing the registry with `docs/commands-plan.json`.
++- [x] A catalog test comparing the registry with `docs/commands-plan.json`, including every menu, ribbon and Home-tab reference. This checks registration coverage, not implementation of every planned command.
+ 
+ ## M2 — Queries and relationships
+ 
+diff --git a/scripts/gen-plan.py b/scripts/gen-plan.py
+index 38ef810..4532231 100755
+--- a/scripts/gen-plan.py
++++ b/scripts/gen-plan.py
+@@ -247,7 +247,7 @@ def keys(c):
+ out = []
+ w = out.append
+ w("# Command inventory plan\n")
+-w("> **Plan.** Anne's Base has no code yet. This is the planned command inventory: every command of Microsoft "
++w("> **Plan.** Anne's Base has an early command shell; database features are not implemented yet. This is the planned command inventory: every command of Microsoft "
+   "Access and of the major database programs past and present, tab by tab, with the command id Anne's Base will use "
+   "and where the idea comes from, plus commands that are new in Anne's Base. It is generated by `scripts/gen-plan.py` "
+   "from [commands-plan.src.txt](commands-plan.src.txt); edit that file, not this one. When the app exists, "
+diff --git a/scripts/termux-setup.sh b/scripts/termux-setup.sh
+index b0cbae5..5a9caf4 100755
+--- a/scripts/termux-setup.sh
++++ b/scripts/termux-setup.sh
+@@ -1,6 +1,6 @@
+ #!/data/data/com.termux/files/usr/bin/bash
+ # Anne's Base: create the GitHub repository, set its description, homepage and topics from
+-# QuillBase.meta.json, commit this folder if it has no commits yet, and push.
++# AnnesBase.meta.json, commit this folder if it has no commits yet, and push.
+ #
+ # Run in Termux (works in any bash with git, GitHub CLI and jq):
+ #   pkg install -y git gh jq
+@@ -9,23 +9,23 @@
+ #   bash scripts/termux-setup.sh             # public repository, like the sister apps
+ #   bash scripts/termux-setup.sh --private   # private instead
+ #
+-# Environment overrides: OWNER (default socrtwo), REPO (default QuillBase).
++# Environment overrides: OWNER (default socrtwo), REPO (default AnnesBase).
+ # Safe to re-run: each step checks whether it was already done.
+ set -euo pipefail
+ 
+ OWNER="${OWNER:-socrtwo}"
+-REPO="${REPO:-QuillBase}"
++REPO="${REPO:-AnnesBase}"
+ VISIBILITY="--public"
+ [[ "${1:-}" == "--private" ]] && VISIBILITY="--private"
+ 
+ cd "$(dirname "$0")/.."
+-META="QuillBase.meta.json"
++META="AnnesBase.meta.json"
+ 
+ for tool in git gh jq; do
+   command -v "$tool" >/dev/null 2>&1 || { echo "✗ $tool is missing. In Termux: pkg install -y git gh jq"; exit 1; }
+ done
+ gh auth status >/dev/null 2>&1 || { echo "✗ Not logged in to GitHub. Run: gh auth login && gh auth setup-git"; exit 1; }
+-[[ -f "$META" ]] || { echo "✗ $META not found; run this from the QuillBase folder"; exit 1; }
++[[ -f "$META" ]] || { echo "✗ $META not found; run this from the AnnesBase folder"; exit 1; }
+ 
+ DESC="$(jq -r '.description' "$META")"
+ HOMEPAGE="$(jq -r '.homepage // ""' "$META")"
+diff --git a/.github/workflows/validate.yml b/.github/workflows/validate.yml
+new file mode 100644
+index 0000000..012f556
+--- /dev/null
++++ b/.github/workflows/validate.yml
+@@ -0,0 +1,43 @@
++name: Validate plans and corpus
++
++on:
++  push:
++  pull_request:
++
++permissions:
++  contents: read
++
++jobs:
++  validate:
++    strategy:
++      fail-fast: false
++      matrix:
++        os: [ubuntu-latest, windows-latest]
++        python: ['3.10', '3.13']
++    runs-on: ${{ matrix.os }}
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-python@v5
++        with:
++          python-version: ${{ matrix.python }}
++      - name: Validate command and menu plans
++        run: python scripts/gen-plan.py --check
++      - name: Test synthetic recovery corpus
++        run: python -m unittest discover -s tests -p "test_*.py" -v
++      - name: Validate application metadata
++        run: python -m json.tool AnnesBase.meta.json
++      - name: Check Termux setup syntax
++        if: runner.os == 'Linux'
++        run: bash -n scripts/termux-setup.sh
++
++  web:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: '24'
++          cache: npm
++      - run: npm ci
++      - run: npm test
++      - run: npm run build
+diff --git a/AnnesBase.meta.json b/AnnesBase.meta.json
+new file mode 100644
+index 0000000..c934e91
+--- /dev/null
++++ b/AnnesBase.meta.json
+@@ -0,0 +1,80 @@
++{
++  "name": "Anne's Base",
++  "description": "An original, open-source desktop database for tables, queries, forms, reports, macros and code, with every command of Access and the classic database programs, AI assistance and database repair and recovery. Clean-room alternative with a familiar workflow. Part of the Anne's Office suite.",
++  "homepage": "",
++  "topics": [
++    "database",
++    "desktop-database",
++    "relational-database",
++    "sql",
++    "sqlite",
++    "query-builder",
++    "forms",
++    "reports",
++    "database-repair",
++    "data-recovery",
++    "text-to-sql",
++    "ai-assistant",
++    "access-alternative",
++    "dbase",
++    "office-suite",
++    "annes-office-suite",
++    "android",
++    "electron",
++    "pwa",
++    "clean-room"
++  ],
++  "keywords": [
++    "annes-base",
++    "annes-office-suite",
++    "database",
++    "desktop-database",
++    "relational-database",
++    "no-code",
++    "low-code",
++    "sql",
++    "sqlite",
++    "sqlcipher",
++    "postgresql",
++    "mysql",
++    "sql-server",
++    "odbc",
++    "query-by-example",
++    "query-builder",
++    "forms",
++    "reports",
++    "mailing-labels",
++    "macros",
++    "vba",
++    "xbase",
++    "dbase",
++    "foxpro",
++    "clipper",
++    "paradox",
++    "filemaker",
++    "lotus-approach",
++    "accdb",
++    "mdb",
++    "dbf",
++    "gedcom",
++    "data-cleaning",
++    "deduplication",
++    "database-repair",
++    "compact-and-repair",
++    "data-recovery",
++    "deleted-record-recovery",
++    "text-to-sql",
++    "natural-language-query",
++    "ai-assistant",
++    "access-alternative",
++    "office-suite",
++    "offline",
++    "pwa",
++    "capacitor",
++    "electron",
++    "android",
++    "ios"
++  ],
++  "appId": "io.github.socrtwo.annesbase",
++  "iconColor": "#A3324F"
++}
+diff --git a/docs/ARCHITECTURE.md b/docs/ARCHITECTURE.md
+new file mode 100644
+index 0000000..65a5346
+--- /dev/null
++++ b/docs/ARCHITECTURE.md
+@@ -0,0 +1,58 @@
++# Current architecture
++
++Anne's Base currently contains a browser command shell and synthetic SQLite test
++fixtures. There is no database engine or application file-access implementation.
++[ARCHITECTURE-PLAN.md](ARCHITECTURE-PLAN.md) describes the intended full product.
++
++## Web scaffold
++
++Vite bundles the TypeScript entry in `src/main.ts` and styles in `src/style.css`.
++The application uses browser DOM APIs with no UI framework. `npm run dev` serves
++the preview; `npm run build` type-checks and produces `dist/`. Node.js 24 LTS is
++the recommended development version. The web build is not yet an offline PWA.
++
++## Commands and views
++
++`src/commands/registry.ts` loads metadata from `docs/commands-plan.json`. Each
++planned command is registered once; a separate handler map controls whether it
++can execute. Metadata alone never enables a command. Duplicate ids, unknown
++handlers and duplicate handlers are rejected. Execution distinguishes unknown,
++unavailable and executed commands; handler failures propagate to the caller.
++
++`src/ui/shell.ts` renders classic menus, nested menus, ribbon groups, search and
++the Quick Access Bar from this catalog. The Home ribbon uses the catalog's
++special `homeTab` arrangement. Contextual tabs can be inspected in this preview;
++they are not yet tied to an open object. Search matches all words against labels,
++ids, tabs, groups and notes, and displays the first 60 matches. Text is inserted
++through DOM text properties rather than HTML interpolation.
++
++Only Search Commands and Add All Choices currently have command handlers. Pin,
++unpin, clear-pins, tab selection and menu selection are local shell controls.
++Database commands are disabled and labeled as planned. The classic menus use
++native disclosure elements; full desktop-style arrow-key navigation and automatic
++menu dismissal are still future work.
++
++## Preferences
++
++`src/prefs.ts` stores versioned browser preferences under
++`annesbase.preferences.v1`. Loading filters unknown command ids, removes duplicate
++pins and validates menu layouts. Malformed JSON and unsupported versions fall
++back to defaults. If browser storage cannot be read or written, controls continue
++working for the session and saving failures are reported.
++
++`QAT_STANDARD` and `QAT_EXTRAS` implement the choices in [QAT.md](QAT.md).
++Add All Choices puts Save and Print first, sorts the remaining choices by label,
++and appends other existing pins in their prior order. Any catalog command may be
++pinned from search, including planned commands; pinning does not enable execution.
++Separators, rearranging pins, settings import/export, per-database settings and
++cross-app preference-format compatibility are not implemented yet.
++
++## Validation
++
++- vitest checks registry behavior, catalog coverage, all menu/ribbon references,
++  preference validation, choice ordering and DOM interactions using jsdom.
++- Python standard-library tests verify generated SQLite fixtures and damage
++  detection; see [../tests/corpus/README.md](../tests/corpus/README.md).
++- `scripts/gen-plan.py --check` validates the planning sources.
++- GitHub Actions runs Python checks on Linux/Windows and the web tests/build on
++  Linux. Platform installers and release artifacts are not configured.
+diff --git a/index.html b/index.html
+new file mode 100644
+index 0000000..9429108
+--- /dev/null
++++ b/index.html
+@@ -0,0 +1,15 @@
++<!doctype html>
++<html lang="en">
++  <head>
++    <meta charset="UTF-8">
++    <meta name="viewport" content="width=device-width, initial-scale=1.0">
++    <meta name="theme-color" content="#a3324f">
++    <meta name="description" content="Anne's Base, part of Anne's Office. Explore the database application's early command shell.">
++    <link rel="icon" type="image/svg+xml" href="/resources/icon.svg">
++    <title>Anne's Base</title>
++  </head>
++  <body>
++    <div id="app"></div>
++    <script type="module" src="/src/main.ts"></script>
++  </body>
++</html>
+diff --git a/package-lock.json b/package-lock.json
+new file mode 100644
+index 0000000..fc02b06
+--- /dev/null
++++ b/package-lock.json
+@@ -0,0 +1,1971 @@
++{
++  "name": "annes-base",
++  "version": "0.1.0-dev.0",
++  "lockfileVersion": 3,
++  "requires": true,
++  "packages": {
++    "": {
++      "name": "annes-base",
++      "version": "0.1.0-dev.0",
++      "license": "MIT",
++      "devDependencies": {
++        "jsdom": "^30.1.3",
++        "typescript": "^7.0.2",
++        "vite": "^8.3.5",
++        "vitest": "^5.1.0"
++      },
++      "engines": {
++        "node": ">=24.15.0"
++      }
++    },
++    "node_modules/@asamuzakjp/css-color": {
++      "version": "7.1.9",
++      "resolved": "https://registry.npmjs.org/@asamuzakjp/css-color/-/css-color-7.1.9.tgz",
++      "integrity": "sha512-vZ6JQVq8Ivgz6b/IBlAf90wZviXdluY13cQOPO+nJHbmXwGrPl2GcpqUY7a55/8ZVdfONXpCFMpRijOBCHNlcQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@csstools/css-calc": "^3.4.3",
++        "@csstools/css-color-parser": "^4.2.6",
++        "@csstools/css-parser-algorithms": "^4.0.2",
++        "@csstools/css-tokenizer": "^4.0.2",
++        "lru-cache": "^11.5.3"
++      },
++      "engines": {
++        "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
++      }
++    },
++    "node_modules/@asamuzakjp/dom-selector": {
++      "version": "10.0.5",
++      "resolved": "https://registry.npmjs.org/@asamuzakjp/dom-selector/-/dom-selector-10.0.5.tgz",
++      "integrity": "sha512-EgmJ7oEaGQECTn3H3wmnQpEy4hKY66VvM7VQndwPIQob3p877BgbyOUE3EX0LgXQCciF2H8KMdR+RznqjMNOLw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "bidi-js": "^1.1.0",
++        "css-tree": "^3.2.1",
++        "is-potential-custom-element-name": "^1.0.1",
++        "lru-cache": "^11.5.3"
++      },
++      "engines": {
++        "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
++      }
++    },
++    "node_modules/@bramus/specificity": {
++      "version": "2.4.3",
++      "resolved": "https://registry.npmjs.org/@bramus/specificity/-/specificity-2.4.3.tgz",
++      "integrity": "sha512-0GEz8qJWokkUVYQYRukmkSHIFNoBH8QTreeHrAFbvz1XFYc3Y+puhMs8PQ5x8GNugiC2l5jvDBXKLbBIByeSBw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "css-tree": "^3.2.1"
++      },
++      "bin": {
++        "specificity": "bin/cli.js"
++      }
++    },
++    "node_modules/@csstools/color-helpers": {
++      "version": "6.1.2",
++      "resolved": "https://registry.npmjs.org/@csstools/color-helpers/-/color-helpers-6.1.2.tgz",
++      "integrity": "sha512-grhRy3OKmniaAEKXMjua5z/EODX0MSqBGjunw8+j/3HQjOnahs2AGhvEOIYVUWcU6ScApbhLhVrQTX8XqrMrow==",
++      "dev": true,
++      "funding": [
++        {
++          "type": "github",
++          "url": "https://github.com/sponsors/csstools"
++        },
++        {
++          "type": "opencollective",
++          "url": "https://opencollective.com/csstools"
++        }
++      ],
++      "license": "MIT-0",
++      "engines": {
++        "node": ">=20.19.0"
++      }
++    },
++    "node_modules/@csstools/css-calc": {
++      "version": "3.4.3",
++      "resolved": "https://registry.npmjs.org/@csstools/css-calc/-/css-calc-3.4.3.tgz",
++      "integrity": "sha512-iex20d8CHVkyvg6B7UKV7uHnI2Bqo9g+EFfT9E0y+GvTvhZ/DwONJ+9aKb1dlqm0ZiGsL5RXjp0fCoJYnkeDjA==",
++      "dev": true,
++      "funding": [
++        {
++          "type": "github",
++          "url": "https://github.com/sponsors/csstools"
++        },
++        {
++          "type": "opencollective",
++          "url": "https://opencollective.com/csstools"
++        }
++      ],
++      "license": "MIT",
++      "engines": {
++        "node": ">=20.19.0"
++      },
++      "peerDependencies": {
++        "@csstools/css-parser-algorithms": "^4.0.2",
++        "@csstools/css-tokenizer": "^4.0.2"
++      }
++    },
++    "node_modules/@csstools/css-color-parser": {
++      "version": "4.2.7",
++      "resolved": "https://registry.npmjs.org/@csstools/css-color-parser/-/css-color-parser-4.2.7.tgz",
++      "integrity": "sha512-zgm9yjQz5iJB4VL8RyVwd71TWB8Q89FSxt/NzXoWqPSkEBOVtn9L6vAPtSc9hpKfB0Awo/AL2VKFHjYetBLFHQ==",
++      "dev": true,
++      "funding": [
++        {
++          "type": "github",
++          "url": "https://github.com/sponsors/csstools"
++        },
++        {
++          "type": "opencollective",
++          "url": "https://opencollective.com/csstools"
++        }
++      ],
++      "license": "MIT",
++      "dependencies": {
++        "@csstools/color-helpers": "^6.1.2",
++        "@csstools/css-calc": "^3.4.3"
++      },
++      "engines": {
++        "node": ">=20.19.0"
++      },
++      "peerDependencies": {
++        "@csstools/css-parser-algorithms": "^4.0.2",
++        "@csstools/css-tokenizer": "^4.0.2"
++      }
++    },
++    "node_modules/@csstools/css-parser-algorithms": {
++      "version": "4.0.2",
++      "resolved": "https://registry.npmjs.org/@csstools/css-parser-algorithms/-/css-parser-algorithms-4.0.2.tgz",
++      "integrity": "sha512-40cSKyMvK+tq4qz6Awrlye2WGuOKt3FwPgtGg6KTfbHOWNw+Rk1rzbAtZnZ6IBhsY491HLRnDXwoyBAijmmILA==",
++      "dev": true,
++      "funding": [
++        {
++          "type": "github",
++          "url": "https://github.com/sponsors/csstools"
++        },
++        {
++          "type": "opencollective",
++          "url": "https://opencollective.com/csstools"
++        }
++      ],
++      "license": "MIT",
++      "engines": {
++        "node": ">=20.19.0"
++      },
++      "peerDependencies": {
++        "@csstools/css-tokenizer": "^4.0.2"
++      }
++    },
++    "node_modules/@csstools/css-syntax-patches-for-csstree": {
++      "version": "1.1.16",
++      "resolved": "https://registry.npmjs.org/@csstools/css-syntax-patches-for-csstree/-/css-syntax-patches-for-csstree-1.1.16.tgz",
++      "integrity": "sha512-LsDbJPP/B8cPasUJyTA5S99F7C4G93ngW8hUluXz8CFeOaaRnBPtBiIlvgcPYU0HmHNz8CXg+1vwFrIB4F6Dgw==",
++      "dev": true,
++      "funding": [
++        {
++          "type": "github",
++          "url": "https://github.com/sponsors/csstools"
++        },
++        {
++          "type": "opencollective",
++          "url": "https://opencollective.com/csstools"
++        }
++      ],
++      "license": "MIT-0",
++      "peerDependencies": {
++        "css-tree": "^3.2.1"
++      },
++      "peerDependenciesMeta": {
++        "css-tree": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/@csstools/css-tokenizer": {
++      "version": "4.0.2",
++      "resolved": "https://registry.npmjs.org/@csstools/css-tokenizer/-/css-tokenizer-4.0.2.tgz",
++      "integrity": "sha512-OoKoR0f76dCY666JlcbhmVTs2drYj1GUXZTYTcbUgJjh9Nv41aFfZ21bPQTERm5+L5cBDo466NltB2lplS5GBw==",
++      "dev": true,
++      "funding": [
++        {
++          "type": "github",
++          "url": "https://github.com/sponsors/csstools"
++        },
++        {
++          "type": "opencollective",
++          "url": "https://opencollective.com/csstools"
++        }
++      ],
++      "license": "MIT",
++      "engines": {
++        "node": ">=20.19.0"
++      }
++    },
++    "node_modules/@exodus/bytes": {
++      "version": "1.16.0",
++      "resolved": "https://registry.npmjs.org/@exodus/bytes/-/bytes-1.16.0.tgz",
++      "integrity": "sha512-IcpW84uEn3N7ETtNZMlxKhfl6Pec8rUNGOTBtWbK1FKhJxIFAptZyVrvVRVBimAJxJCgc3PxepxkdWWG4DVzfA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
++      },
++      "peerDependencies": {
++        "@noble/hashes": "^1.8.0 || ^2.0.0"
++      },
++      "peerDependenciesMeta": {
++        "@noble/hashes": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/@jridgewell/resolve-uri": {
++      "version": "3.1.2",
++      "resolved": "https://registry.npmjs.org/@jridgewell/resolve-uri/-/resolve-uri-3.1.2.tgz",
++      "integrity": "sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=6.0.0"
++      }
++    },
++    "node_modules/@jridgewell/sourcemap-codec": {
++      "version": "1.6.0",
++      "resolved": "https://registry.npmjs.org/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.6.0.tgz",
++      "integrity": "sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/@jridgewell/trace-mapping": {
++      "version": "0.3.31",
++      "resolved": "https://registry.npmjs.org/@jridgewell/trace-mapping/-/trace-mapping-0.3.31.tgz",
++      "integrity": "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@jridgewell/resolve-uri": "^3.1.0",
++        "@jridgewell/sourcemap-codec": "^1.4.14"
++      }
++    },
++    "node_modules/@oxc-project/types": {
++      "version": "0.156.0",
++      "resolved": "https://registry.npmjs.org/@oxc-project/types/-/types-0.156.0.tgz",
++      "integrity": "sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw==",
++      "dev": true,
++      "license": "MIT",
++      "funding": {
++        "url": "https://github.com/sponsors/oxc-project"
++      }
++    },
++    "node_modules/@rolldown/binding-android-arm-eabi": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-android-arm-eabi/-/binding-android-arm-eabi-1.2.16.tgz",
++      "integrity": "sha512-ia3DwAs0OsMGS7+IConptSiyk9pEXkOx/AbJ2n/lAGxH3QkWQus1t8d7gnAT38FCU2sQu8lUbeR6AiZFv4JxaA==",
++      "cpu": [
++        "arm"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      }
++    },
++    "node_modules/@rolldown/binding-android-arm64": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-android-arm64/-/binding-android-arm64-1.2.16.tgz",
++      "integrity": "sha512-kx5wBiMB6E7TEvpl2B9gjLU004BkvEm2Dr941BFjx/SontPwSzNuQUIoVKxHHoSjpFIfHMmcguyLOtyn0hObRg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      }
++    },
++    "node_modules/@rolldown/binding-darwin-arm64": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-darwin-arm64/-/binding-darwin-arm64-1.2.16.tgz",
++      "integrity": "sha512-qslZrXnKJU4cUpjoAmtAo/KQM9e2IRMlmpig6Zpwj+8KWxW8v+nkAf9216Bsek9lOC1jvg2yCjygCFo2f83msQ==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      }
++    },
++    "node_modules/@rolldown/binding-darwin-x64": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-darwin-x64/-/binding-darwin-x64-1.2.16.tgz",
++      "integrity": "sha512-FdF+y48ND13eAyM2mQn+85kvAqNlvRWROy2rhgA463X/0Gv4vGtazZtfaF1mRBLscYvtOlh4QnLjOWiFzX69OQ==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      }
++    },
++    "node_modules/@rolldown/binding-freebsd-x64": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-freebsd-x64/-/binding-freebsd-x64-1.2.16.tgz",
++      "integrity": "sha512-ddjqFM5e95AgLbUPtKIS7V1KTVlA0RUgCVr5mn+/IEhsdy3pr+Vuj/HZ7nlMN2FyxIwUktOH1LEPIQXO1v9y1Q==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      }
++    },
++    "node_modules/@rolldown/binding-linux-arm-gnueabihf": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-arm-gnueabihf/-/binding-linux-arm-gnueabihf-1.2.16.tgz",
++      "integrity": "sha512-tHdKWbFkFBI687iim3LIyIvyL7j66VvQYkDPss5Stn/qyE2tWkR1YD0dXmXPFKKqT/o5ZEJVsaRsWS2meQwGOA==",
++      "cpu": [
++        "arm"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      }
++    },
++    "node_modules/@rolldown/binding-linux-arm64-gnu": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-1.2.16.tgz",
++      "integrity": "sha512-FJiLGAblPBMlBEdbOqw6kW6QcXDWAf/oJu7gYs9ZJZwmg+K+/zjFLxPTIY9izJUzxzc24FHvmseyA0IvJSl17w==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      }
++    },
++    "node_modules/@rolldown/binding-linux-arm64-musl": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-arm64-musl/-/binding-linux-arm64-musl-1.2.16.tgz",
++      "integrity": "sha512-hrJpblMsrQ58U9veWpbXzkhV5zStunds6HWLprqq1qauvgBr1E6P+24kLj6lSLI9vjRn/RYpjprhkHQPKGWpNg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      }
++    },
++    "node_modules/@rolldown/binding-linux-ppc64-gnu": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-1.2.16.tgz",
++      "integrity": "sha512-qJd/dC6j6CwLG9/s/RP2nb1RZ0GIgj7Ioj7x/SYa3RzjVrlzrmH0fhIOpfvqQDeIsdP0loi+kHaMhJzY1PBIaA==",
++      "cpu": [
++        "ppc64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      }
++    },
++    "node_modules/@rolldown/binding-linux-s390x-gnu": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-1.2.16.tgz",
++      "integrity": "sha512-Vx7Xg5uUJuNcujJjI70OICaH0EYj80BtOLZTSN7uOYg8QOLlyKnaG0IW7Fn/J0IpJsaKzmDKMhOQv1JBM9m9vg==",
++      "cpu": [
++        "s390x"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      }
++    },
++    "node_modules/@rolldown/binding-linux-x64-gnu": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.2.16.tgz",
++      "integrity": "sha512-TNKhgE3uJTsTzatUSSYt0Kgo+Oa2uSlSjz4r1aEIea7HX6ULBym4fAlYUhG1i6pjNf2njfCUAfKwr6C3E9Xg1w==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      }
++    },
++    "node_modules/@rolldown/binding-linux-x64-musl": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-x64-musl/-/binding-linux-x64-musl-1.2.16.tgz",
++      "integrity": "sha512-7chXdpjXZ8qG0+mIxECN3cT9kvhZ3/oZhMX6Pp876P7CDrIy8nJswva6Mq357JR7eYXfuskwZxMeV1SzoZdHrA==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      }
++    },
++    "node_modules/@rolldown/binding-openharmony-arm64": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-openharmony-arm64/-/binding-openharmony-arm64-1.2.16.tgz",
++      "integrity": "sha512-Kwjt+7uNTJK5/MDkGWGVO2KQPnj8yAV75dMpfwyHZrJSXWHrniOB0aUEWlVYf3H1hOqFLIStLdM5QXq6bnKmOQ==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "openharmony"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      }
++    },
++    "node_modules/@rolldown/binding-win32-arm64-msvc": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-win32-arm64-msvc/-/binding-win32-arm64-msvc-1.2.16.tgz",
++      "integrity": "sha512-/LH6WfjDRXXJz/p5xl4TmU+jpcnwcxbKEQBW/GZE0JHfN0lGIyTtsUEGaQ/q/GikkGJ2yLKe6pwm7AnEWO8pdw==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      }
++    },
++    "node_modules/@rolldown/binding-win32-x64-msvc": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/@rolldown/binding-win32-x64-msvc/-/binding-win32-x64-msvc-1.2.16.tgz",
++      "integrity": "sha512-1lv1KvX0Z871zfk7vw+dnXMMnHNyDwMzWG8Kv3HxDXMOhzCX4SHc7HK319fInP0i+0p9D8brkfzL7pJOaGl+tw==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      }
++    },
++    "node_modules/@rolldown/pluginutils": {
++      "version": "1.0.1",
++      "resolved": "https://registry.npmjs.org/@rolldown/pluginutils/-/pluginutils-1.0.1.tgz",
++      "integrity": "sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/@types/chai": {
++      "version": "5.2.3",
++      "resolved": "https://registry.npmjs.org/@types/chai/-/chai-5.2.3.tgz",
++      "integrity": "sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@types/deep-eql": "*",
++        "assertion-error": "^2.0.1"
++      }
++    },
++    "node_modules/@types/deep-eql": {
++      "version": "4.0.2",
++      "resolved": "https://registry.npmjs.org/@types/deep-eql/-/deep-eql-4.0.2.tgz",
++      "integrity": "sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/@types/estree": {
++      "version": "1.0.10",
++      "resolved": "https://registry.npmjs.org/@types/estree/-/estree-1.0.10.tgz",
++      "integrity": "sha512-lTyOMnOcmRBzdCv6/4zUZCrEhV0xrqQiUZBZtVcbmLHBXKLnN8q89v/wKRF/Q0HbwVsqbIG3o5HDoFl9sduM+g==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/@typescript/typescript-aix-ppc64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-aix-ppc64/-/typescript-aix-ppc64-7.0.2.tgz",
++      "integrity": "sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==",
++      "cpu": [
++        "ppc64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "aix"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-darwin-arm64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-darwin-arm64/-/typescript-darwin-arm64-7.0.2.tgz",
++      "integrity": "sha512-gowzar9MwS/aRWp6f3a4KUqzRjAZjOsmGNCM6LcTgXum+dBfgsBVMN+AgvOCCbguXyick6LJhpBszxMebJ8syA==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-darwin-x64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-darwin-x64/-/typescript-darwin-x64-7.0.2.tgz",
++      "integrity": "sha512-SZ9xZInqApNlNGc9s0W1VSsktYSOe9cFqNOIqmN1Gs8SmkjKZYFt017G4VwPxASInODuAdbTW7sXiFUf893RgA==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-freebsd-arm64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-freebsd-arm64/-/typescript-freebsd-arm64-7.0.2.tgz",
++      "integrity": "sha512-W5NH4y/J0plIIS5b2xvTEkU7JFxyqdMAOgf+Ilhl0vHQXKO5dZoxd+C/jEtq56c4F3wk71RB4BMRQ2XdI+bwYQ==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-freebsd-x64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-freebsd-x64/-/typescript-freebsd-x64-7.0.2.tgz",
++      "integrity": "sha512-UMGDx5sTpzNw3WiPebH7l90IWfJggEd+egHt/q6p7/Cm3zqoV7VxkGXt+3DxPIw8CcmvAB0j3sVVfbhX+M4Tpw==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-linux-arm": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-arm/-/typescript-linux-arm-7.0.2.tgz",
++      "integrity": "sha512-gffT3xPz9sR7j/YJExkyPntrI0P2EP9XbOyWzth2/Gs0RstK+90RBcO0ncXoXy/beYll1SXw846Nf2zdnEz0QQ==",
++      "cpu": [
++        "arm"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-linux-arm64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-arm64/-/typescript-linux-arm64-7.0.2.tgz",
++      "integrity": "sha512-Qh4eU4/y3yDjnfjjyPYihMj5/ODIlmt+Bzu17OI+fiSRDW57QmU5SiN63exPRNJPKUzcc1INa1NXdrJ+MqHjUQ==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-linux-loong64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-loong64/-/typescript-linux-loong64-7.0.2.tgz",
++      "integrity": "sha512-uEHck9i8hoAzXPiYRib1O7miOnz23SxIeVl6F4LXox+qov1K35jHcEW6VHKvZI+pyvl7fZEP4MCU5LYvIq1GuQ==",
++      "cpu": [
++        "loong64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-linux-mips64el": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-mips64el/-/typescript-linux-mips64el-7.0.2.tgz",
++      "integrity": "sha512-R4KvAMnE43W5Qeqb0Ly56O3mWMWIAgsMyz36DCaycd5nbg/9kzm0liw3JocfRqyJY0KPmzFjbswozXyW0DnIYA==",
++      "cpu": [
++        "mips64el"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-linux-ppc64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-ppc64/-/typescript-linux-ppc64-7.0.2.tgz",
++      "integrity": "sha512-DORx5b3sd/4S7eayxm4FQv+A7CrkUIGRaHiwI8oiHTAI1fAPWhF4J0vAlkC8biAlHSVVwxMQ3tjZ2/DVbnQiiA==",
++      "cpu": [
++        "ppc64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-linux-riscv64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-riscv64/-/typescript-linux-riscv64-7.0.2.tgz",
++      "integrity": "sha512-wf0jqEDOjrPRnKwYRyyJDRo11KMbvMFrU+q4zqKyChODBzvlkbhNQfKvLxQCcwTpdDaXSHZTVuh0JoCrKCUMHQ==",
++      "cpu": [
++        "riscv64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-linux-s390x": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-s390x/-/typescript-linux-s390x-7.0.2.tgz",
++      "integrity": "sha512-IkwJc3L7yhytWd/ewjyxNDfOmswCm9GWMJT/ue/dU4aZNbwZeYAetq42VyLmsmSjvoX7z74X6ZaYCtzAr0EuGw==",
++      "cpu": [
++        "s390x"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-linux-x64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-x64/-/typescript-linux-x64-7.0.2.tgz",
++      "integrity": "sha512-EYdf2cNg7rgCWJnxCdJ+F3V39O8ihb37eHAu1LK8oAFizgTQbPOK7zHHXbPt8rX24COqODXeI3sIf0fCXG7H/A==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-netbsd-arm64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-netbsd-arm64/-/typescript-netbsd-arm64-7.0.2.tgz",
++      "integrity": "sha512-+polYF4MF04aPpO5FTkHran9yUQDSXqy5GiSDKpsll5jy3l3+g9QLhpf39T+ePtefhXLOGrLl0QIjkQP6VnelA==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "netbsd"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-netbsd-x64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-netbsd-x64/-/typescript-netbsd-x64-7.0.2.tgz",
++      "integrity": "sha512-8YIT0EHM/3dq10ZOVF/A7pc/YSMtbcecct4rWtexrnSCHOPcpC2KTLXfTCR6vDpnSiY12heNb1GiN/wu+T/FyA==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "netbsd"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-openbsd-arm64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-openbsd-arm64/-/typescript-openbsd-arm64-7.0.2.tgz",
++      "integrity": "sha512-APT8+ClYnuYm1u9+kgGXoMj2VzWzcymwh2gNSQVySHfkRDGOTVkoWLjCmOQSaO+PoqQ57B0flRp9SA+7GnnkzQ==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "openbsd"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-openbsd-x64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-openbsd-x64/-/typescript-openbsd-x64-7.0.2.tgz",
++      "integrity": "sha512-yX7s+Q0Dln0Dt9tEzZsAjXXR/+ytBM7AlglaqyeMPxQszJ1JhlJdZ6jLA+IzldHtflX81em7lDao1xXu+aRRkg==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "openbsd"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-sunos-x64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-sunos-x64/-/typescript-sunos-x64-7.0.2.tgz",
++      "integrity": "sha512-dLJDGaLZ1D4HPQn62u1n8mBDkJREwMsAkCdkwd4Ieqw+x3TUyTsqY0YiBCtE6H6OzzgGk3iuZ3vFWRS+E8/d1g==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "sunos"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-win32-arm64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-win32-arm64/-/typescript-win32-arm64-7.0.2.tgz",
++      "integrity": "sha512-Gyl1Vy6OsWesLzmq+EP0Fb7b4Nid5232AvcA2SFcdYreldpNtYFFofPjnt62y9hQy7VTaZp65ICJjuAQRaVcIQ==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@typescript/typescript-win32-x64": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/@typescript/typescript-win32-x64/-/typescript-win32-x64-7.0.2.tgz",
++      "integrity": "sha512-0BQ3HkAHHlKLSp1qRvf3SUhGpGsDuhB/jgFw75guyqbxJqEaS0Cw/VFO8i2nHglJUzQCRtMMR/IBAKE3ETMC4g==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "Apache-2.0",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">=16.20.0"
++      }
++    },
++    "node_modules/@vitest/mocker": {
++      "version": "5.1.0",
++      "resolved": "https://registry.npmjs.org/@vitest/mocker/-/mocker-5.1.0.tgz",
++      "integrity": "sha512-5umB9/jlWcqVS6fsrFmv5Gdnpu6wAUio/lEOwAmvB7v+lFo/IW2B9FhAD0p19GCULTgMzLCdUmuCDCnAzWgppQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@jridgewell/trace-mapping": "0.3.31",
++        "@vitest/spy": "5.1.0",
++        "estree-walker": "^3.0.3",
++        "magic-string": "^1.4.3"
++      },
++      "funding": {
++        "url": "https://opencollective.com/vitest"
++      },
++      "peerDependencies": {
++        "msw": "^2.4.9 || ^3.0.0",
++        "vite": "^6.0.0 || ^7.0.0 || ^8.0.0"
++      },
++      "peerDependenciesMeta": {
++        "msw": {
++          "optional": true
++        },
++        "vite": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/@vitest/spy": {
++      "version": "5.1.0",
++      "resolved": "https://registry.npmjs.org/@vitest/spy/-/spy-5.1.0.tgz",
++      "integrity": "sha512-2DPO5OMHWKrBngC+fCmTQqemNF0gidRhp3lxbBmRhW+M1XJrfgPpqNqWVevXtn2f2ufD5ZaR1B6B641aAlcX5A==",
++      "dev": true,
++      "license": "MIT",
++      "funding": {
++        "url": "https://opencollective.com/vitest"
++      }
++    },
++    "node_modules/assertion-error": {
++      "version": "2.0.1",
++      "resolved": "https://registry.npmjs.org/assertion-error/-/assertion-error-2.0.1.tgz",
++      "integrity": "sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=12"
++      }
++    },
++    "node_modules/bidi-js": {
++      "version": "1.1.0",
++      "resolved": "https://registry.npmjs.org/bidi-js/-/bidi-js-1.1.0.tgz",
++      "integrity": "sha512-fX1Onk0tdVPC7obPWB5EbJ1z7NVhLq4m2xZLq2YXBkxzMXIGRpNMU88n0EPgWseKl12J7zXs7qrDxPK4sRs2fg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "require-from-string": "^2.0.2"
++      }
++    },
++    "node_modules/chai": {
++      "version": "6.3.0",
++      "resolved": "https://registry.npmjs.org/chai/-/chai-6.3.0.tgz",
++      "integrity": "sha512-XWAtwJ6OHO+tj0EKCs0Y2UamnyOxseZWltU4x2U2wh8g4AigdjwvtUjvLP2tqkA/avxHEtzxNaqGq/YGNwckKg==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/css-tree": {
++      "version": "3.2.1",
++      "resolved": "https://registry.npmjs.org/css-tree/-/css-tree-3.2.1.tgz",
++      "integrity": "sha512-X7sjQzceUhu1u7Y/ylrRZFU2FS6LRiFVp6rKLPg23y3x3c3DOKAwuXGDp+PAGjh6CSnCjYeAul8pcT8bAl+lSA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "mdn-data": "2.27.1",
++        "source-map-js": "^1.2.1"
++      },
++      "engines": {
++        "node": "^10 || ^12.20.0 || ^14.13.0 || >=15.0.0"
++      }
++    },
++    "node_modules/data-urls": {
++      "version": "8.0.0",
++      "resolved": "https://registry.npmjs.org/data-urls/-/data-urls-8.0.0.tgz",
++      "integrity": "sha512-JQUCCK+/CAGbGGx618PlFZMXH81Jtj7t73CHv9dd/zVWvxgGT2zLFRjnKb+Ng46GIwcy+f7f88qd4duqllK+WQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "whatwg-mimetype": "^5.0.0",
++        "whatwg-url": "^17.1.2"
++      },
++      "engines": {
++        "node": "^22.14.0 || >=24.0.0"
++      }
++    },
++    "node_modules/decimal.js": {
++      "version": "10.6.0",
++      "resolved": "https://registry.npmjs.org/decimal.js/-/decimal.js-10.6.0.tgz",
++      "integrity": "sha512-YpgQiITW3JXGntzdUmyUR1V812Hn8T1YVXhCu+wO3OpS4eU9l4YdD3qjyiKdV6mvV29zapkMeD390UVEf2lkUg==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/detect-libc": {
++      "version": "2.1.2",
++      "resolved": "https://registry.npmjs.org/detect-libc/-/detect-libc-2.1.2.tgz",
++      "integrity": "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "engines": {
++        "node": ">=8"
++      }
++    },
++    "node_modules/entities": {
++      "version": "9.0.0",
++      "resolved": "https://registry.npmjs.org/entities/-/entities-9.0.0.tgz",
++      "integrity": "sha512-oJFNDJg3kTPwAD1cNn2+WmUq4wFoo09npc3Ydf1D7ED4smRiWrsKnaLxykrTWgyGEcusc87P5dxlAleol9kpkg==",
++      "dev": true,
++      "license": "BSD-2-Clause",
++      "engines": {
++        "node": ">=20.19.0"
++      },
++      "funding": {
++        "url": "https://github.com/fb55/entities?sponsor=1"
++      }
++    },
++    "node_modules/es-module-lexer": {
++      "version": "2.3.2",
++      "resolved": "https://registry.npmjs.org/es-module-lexer/-/es-module-lexer-2.3.2.tgz",
++      "integrity": "sha512-poHGpORABojJJucnV9KbOavETW8lBVnphkW77ER5/BQ5Fz7oXSoCNek7IH3vR5nRjdsEz926ibFYX8KtLQmdyw==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/estree-walker": {
++      "version": "3.0.3",
++      "resolved": "https://registry.npmjs.org/estree-walker/-/estree-walker-3.0.3.tgz",
++      "integrity": "sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@types/estree": "^1.0.0"
++      }
++    },
++    "node_modules/expect-type": {
++      "version": "1.4.0",
++      "resolved": "https://registry.npmjs.org/expect-type/-/expect-type-1.4.0.tgz",
++      "integrity": "sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "engines": {
++        "node": ">=12.0.0"
++      }
++    },
++    "node_modules/fdir": {
++      "version": "6.5.0",
++      "resolved": "https://registry.npmjs.org/fdir/-/fdir-6.5.0.tgz",
++      "integrity": "sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=12.0.0"
++      },
++      "peerDependencies": {
++        "picomatch": "^3 || ^4"
++      },
++      "peerDependenciesMeta": {
++        "picomatch": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/fsevents": {
++      "version": "2.3.3",
++      "resolved": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz",
++      "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
++      "dev": true,
++      "hasInstallScript": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": "^8.16.0 || ^10.6.0 || >=11.0.0"
++      }
++    },
++    "node_modules/html-encoding-sniffer": {
++      "version": "7.0.0",
++      "resolved": "https://registry.npmjs.org/html-encoding-sniffer/-/html-encoding-sniffer-7.0.0.tgz",
++      "integrity": "sha512-UikN5yr7xsCDAq87Or5or0PAlD3HJJOKVzM05az588WnpDJ4Ux7a2A53Qi6gofGg2/EtvF/H4hCi/TXfCW4Y6w==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@exodus/bytes": "^1.15.1"
++      },
++      "engines": {
++        "node": "^22.13.0 || >=24.0.0"
++      }
++    },
++    "node_modules/is-potential-custom-element-name": {
++      "version": "1.0.1",
++      "resolved": "https://registry.npmjs.org/is-potential-custom-element-name/-/is-potential-custom-element-name-1.0.1.tgz",
++      "integrity": "sha512-bCYeRA2rVibKZd+s2625gGnGF/t7DSqDs4dP7CrLA1m7jKWz6pps0LpYLJN8Q64HtmPKJ1hrN3nzPNKFEKOUiQ==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/jsdom": {
++      "version": "30.1.3",
++      "resolved": "https://registry.npmjs.org/jsdom/-/jsdom-30.1.3.tgz",
++      "integrity": "sha512-hQMUPvRgN7KxsfIytDQji7bimuJeRQa6Qo5+iuiZQk5CafeRxLIA10/cG5YCBFNpD9RO3oqIiN4CO1Y44kxqXg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@asamuzakjp/css-color": "^7.1.3",
++        "@asamuzakjp/dom-selector": "^10.0.3",
++        "@bramus/specificity": "^2.4.2",
++        "@csstools/css-syntax-patches-for-csstree": "^1.1.15",
++        "@exodus/bytes": "^1.16.0",
++        "css-tree": "^3.2.1",
++        "data-urls": "^8.0.0",
++        "decimal.js": "^10.6.0",
++        "html-encoding-sniffer": "^7.0.0",
++        "is-potential-custom-element-name": "^1.0.1",
++        "lru-cache": "^11.5.3",
++        "parse5": "^8.0.1",
++        "saxes": "^6.0.0",
++        "tough-cookie": "^6.0.2",
++        "undici": "^8.12.1",
++        "w3c-xmlserializer": "^6.0.0",
++        "webidl-conversions": "^8.0.1",
++        "whatwg-mimetype": "^5.0.0",
++        "whatwg-url": "^17.2.0",
++        "xml-name-validator": "^5.0.0"
++      },
++      "engines": {
++        "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
++      },
++      "peerDependencies": {
++        "canvas": "^3.2.3"
++      },
++      "peerDependenciesMeta": {
++        "canvas": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/lightningcss": {
++      "version": "1.33.0",
++      "resolved": "https://registry.npmjs.org/lightningcss/-/lightningcss-1.33.0.tgz",
++      "integrity": "sha512-WkUDrojuJs0xkgGf2udWxa3yGBRxPtxUkB79i6aCZLRgc7PM8fZe9TosfPDcvEpQZbuFASnHYmRLBLUbmLOIIA==",
++      "dev": true,
++      "license": "MPL-2.0",
++      "dependencies": {
++        "detect-libc": "^2.0.3"
++      },
++      "engines": {
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      },
++      "optionalDependencies": {
++        "lightningcss-android-arm64": "1.33.0",
++        "lightningcss-darwin-arm64": "1.33.0",
++        "lightningcss-darwin-x64": "1.33.0",
++        "lightningcss-freebsd-x64": "1.33.0",
++        "lightningcss-linux-arm-gnueabihf": "1.33.0",
++        "lightningcss-linux-arm64-gnu": "1.33.0",
++        "lightningcss-linux-arm64-musl": "1.33.0",
++        "lightningcss-linux-x64-gnu": "1.33.0",
++        "lightningcss-linux-x64-musl": "1.33.0",
++        "lightningcss-win32-arm64-msvc": "1.33.0",
++        "lightningcss-win32-x64-msvc": "1.33.0"
++      }
++    },
++    "node_modules/lightningcss-android-arm64": {
++      "version": "1.33.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-android-arm64/-/lightningcss-android-arm64-1.33.0.tgz",
++      "integrity": "sha512-gEpRTalKdosp4Bb8qWtc2iOgE5SeIHlpS1up9bFq2wAyYhl1UdTObYiHe98zEM9SQvSoqQZ1IQD0JNpg3Ml5pg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-darwin-arm64": {
++      "version": "1.33.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-darwin-arm64/-/lightningcss-darwin-arm64-1.33.0.tgz",
++      "integrity": "sha512-Sciaz8eenNTKn9b3t7+xr0ipTp9YxKQY4npwQ3mrRuL0BAVHBLyZxofhaKBAVtzmtRZ/zTyo0/to4B1uWG/Djg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-darwin-x64": {
++      "version": "1.33.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-darwin-x64/-/lightningcss-darwin-x64-1.33.0.tgz",
++      "integrity": "sha512-Z5UPAxzrjlWNNyGy6i65cJzzvgJ5D3T6wMvs+gWpY9d7qRhANrxqAp6LhxIgZhWEw18RfJTGcRxjuLIBr+m8XQ==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-freebsd-x64": {
++      "version": "1.33.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-freebsd-x64/-/lightningcss-freebsd-x64-1.33.0.tgz",
++      "integrity": "sha512-QQM/Ti/hQajJwCY+RiWuCZ9sdtI/XQk7nDK5vC8kkdwixezOlDgvDx7+RT+QjK6FcFT4MpsuoBnHIo/O3StRRg==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-linux-arm-gnueabihf": {
++      "version": "1.33.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-linux-arm-gnueabihf/-/lightningcss-linux-arm-gnueabihf-1.33.0.tgz",
++      "integrity": "sha512-N7FVBe6iS24MlM6R/4RBTxGhQheZGs7tiQ9U32UtF75NzP5Q7xWPRqLBCKxlRQRk3rY1jCIPLzx7WzOhuUIRLQ==",
++      "cpu": [
++        "arm"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-linux-arm64-gnu": {
++      "version": "1.33.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-linux-arm64-gnu/-/lightningcss-linux-arm64-gnu-1.33.0.tgz",
++      "integrity": "sha512-j2v/itmy4HlNxlc6voKXYgBqNi0Ng2LShg4z7GufpEgs05P+2suBVyi9I6YHq5uoVFx9ETin3eCEhLVyXGQnKg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-linux-arm64-musl": {
++      "version": "1.33.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-linux-arm64-musl/-/lightningcss-linux-arm64-musl-1.33.0.tgz",
++      "integrity": "sha512-yiO5ROMuYQgXbC60yjZU5CYSFZGKXL0HFATXt9mHJn1+zW55oCtMI9NfcVhYLMFDL7gV7oBPon/EmMMGg2OvtQ==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-linux-x64-gnu": {
++      "version": "1.33.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-linux-x64-gnu/-/lightningcss-linux-x64-gnu-1.33.0.tgz",
++      "integrity": "sha512-ar+Ju7LmcN0Jo4FpL4hpFybwNG9/3A/Br5KW2n2jyODg3MEZXaDYADdemoNS+BDNfMgKvylJLj4S5tyRActuAg==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-linux-x64-musl": {
++      "version": "1.33.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-linux-x64-musl/-/lightningcss-linux-x64-musl-1.33.0.tgz",
++      "integrity": "sha512-RYiYbkokw0trfKqqzfF55lginwEPrD3OJDfTuJzFs1MK6iFnDenaz1fqLLtX4ITG3OktJQXOeTaw1awrBAlZPw==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-win32-arm64-msvc": {
++      "version": "1.33.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-win32-arm64-msvc/-/lightningcss-win32-arm64-msvc-1.33.0.tgz",
++      "integrity": "sha512-1K+MPfLSFVpphzpdbfkhlWk6wBrTObBzS2T6db10PNOZgR9GoVsAWzwNyuhUYYbTp23j+4RrncfujZ4uAzXvwA==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lightningcss-win32-x64-msvc": {
++      "version": "1.33.0",
++      "resolved": "https://registry.npmjs.org/lightningcss-win32-x64-msvc/-/lightningcss-win32-x64-msvc-1.33.0.tgz",
++      "integrity": "sha512-OlEICDx/Xl0FqSp4bry8zFnCvGpig3Gl4gCquvYwHuqJKEC1+n9NgDniFvqHGmMv1ZkqDJrDqKKSykTDX+ehuA==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MPL-2.0",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">= 12.0.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/parcel"
++      }
++    },
++    "node_modules/lru-cache": {
++      "version": "11.5.3",
++      "resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-11.5.3.tgz",
++      "integrity": "sha512-U4N8FgzmWxc8k1VH8Kr6lQg18U7Fjvby6wXHVRX/ZZ7IwWbRMgrRbP0Wrb5q5NVinryp4SQampHKdvtecItxUg==",
++      "dev": true,
++      "license": "BlueOak-1.0.0",
++      "engines": {
++        "node": "20 || >=22"
++      }
++    },
++    "node_modules/magic-string": {
++      "version": "1.4.5",
++      "resolved": "https://registry.npmjs.org/magic-string/-/magic-string-1.4.5.tgz",
++      "integrity": "sha512-oLLC2+YvQUfAa+vxoufE/yc1icb87M9iXIRqAoR/2EhE/8cb3SF/+Gi0c2By1B+5Vz2e2vQtUvHiu1+63Znh+w==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@jridgewell/sourcemap-codec": "^1.6.0"
++      }
++    },
++    "node_modules/mdn-data": {
++      "version": "2.27.1",
++      "resolved": "https://registry.npmjs.org/mdn-data/-/mdn-data-2.27.1.tgz",
++      "integrity": "sha512-9Yubnt3e8A0OKwxYSXyhLymGW4sCufcLG6VdiDdUGVkPhpqLxlvP5vl1983gQjJl3tqbrM731mjaZaP68AgosQ==",
++      "dev": true,
++      "license": "CC0-1.0"
++    },
++    "node_modules/nanoid": {
++      "version": "3.3.20",
++      "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.20.tgz",
++      "integrity": "sha512-uKdg2G3GNCKQn9byYOpxbGqrT2fGO5KRt5J/8b3pok8rT6qxGWF6hxMyJiEYtAf+FVyYuD9hRaDqX5uPFYJ4ZQ==",
++      "dev": true,
++      "funding": [
++        {
++          "type": "github",
++          "url": "https://github.com/sponsors/ai"
++        }
++      ],
++      "license": "MIT",
++      "bin": {
++        "nanoid": "bin/nanoid.cjs"
++      },
++      "engines": {
++        "node": "^10 || ^12 || ^13.7 || ^14 || >=15.0.1"
++      }
++    },
++    "node_modules/obug": {
++      "version": "3.0.0",
++      "resolved": "https://registry.npmjs.org/obug/-/obug-3.0.0.tgz",
++      "integrity": "sha512-5vvB5+W7ePv+p3uqxi+RcW1XAzLW0/hxt3/4X4Lc4qHudzOhmBiBwOY6DRob4WnanAEGvNcLjF+KNOufrUoEQw==",
++      "dev": true,
++      "funding": [
++        "https://github.com/sponsors/sxzz",
++        "https://opencollective.com/debug"
++      ],
++      "license": "MIT",
++      "engines": {
++        "node": ">=12.20.0"
++      }
++    },
++    "node_modules/parse5": {
++      "version": "8.1.0",
++      "resolved": "https://registry.npmjs.org/parse5/-/parse5-8.1.0.tgz",
++      "integrity": "sha512-sq3qBFpee5jeocbFbO48VHlGr8sT7mbXS0vxlKN6sottBtJzrOG3998sr0llSZcQAGgfpdmEYAIZE0P9z0dE8w==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "entities": "^9.0.0"
++      },
++      "funding": {
++        "url": "https://github.com/inikulin/parse5?sponsor=1"
++      }
++    },
++    "node_modules/picocolors": {
++      "version": "1.1.1",
++      "resolved": "https://registry.npmjs.org/picocolors/-/picocolors-1.1.1.tgz",
++      "integrity": "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==",
++      "dev": true,
++      "license": "ISC"
++    },
++    "node_modules/picomatch": {
++      "version": "4.0.7",
++      "resolved": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.7.tgz",
++      "integrity": "sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=12"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/jonschlinkert"
++      }
++    },
++    "node_modules/postcss": {
++      "version": "8.5.32",
++      "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.32.tgz",
++      "integrity": "sha512-LJlKCCAUFKOuZxipUdYw1NzIITEsPcgyOG9LkvRJvuKj/bRzbuRY0ARXvL0pWGpsZvn8jku+LMep2eU0seHp8g==",
++      "dev": true,
++      "funding": [
++        {
++          "type": "opencollective",
++          "url": "https://opencollective.com/postcss/"
++        },
++        {
++          "type": "tidelift",
++          "url": "https://tidelift.com/funding/github/npm/postcss"
++        },
++        {
++          "type": "github",
++          "url": "https://github.com/sponsors/ai"
++        }
++      ],
++      "license": "MIT",
++      "dependencies": {
++        "nanoid": "^3.3.20",
++        "picocolors": "^1.1.1",
++        "source-map-js": "^1.2.2"
++      },
++      "engines": {
++        "node": "^10 || ^12 || >=14"
++      }
++    },
++    "node_modules/punycode": {
++      "version": "2.3.1",
++      "resolved": "https://registry.npmjs.org/punycode/-/punycode-2.3.1.tgz",
++      "integrity": "sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=6"
++      }
++    },
++    "node_modules/require-from-string": {
++      "version": "2.0.2",
++      "resolved": "https://registry.npmjs.org/require-from-string/-/require-from-string-2.0.2.tgz",
++      "integrity": "sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=0.10.0"
++      }
++    },
++    "node_modules/rolldown": {
++      "version": "1.2.16",
++      "resolved": "https://registry.npmjs.org/rolldown/-/rolldown-1.2.16.tgz",
++      "integrity": "sha512-bWvlMpFKiTfDKfnK7FC2MPgPeWCf/Kpwsq49ApdW+FQaBZb6O6dZ4MAPbPUjp7hYQrw/RobqCzn64BRrQecGHw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@oxc-project/types": "=0.156.0",
++        "@rolldown/pluginutils": "^1.0.0"
++      },
++      "bin": {
++        "rolldown": "bin/cli.mjs"
++      },
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      },
++      "optionalDependencies": {
++        "@rolldown/binding-android-arm-eabi": "1.2.16",
++        "@rolldown/binding-android-arm64": "1.2.16",
++        "@rolldown/binding-darwin-arm64": "1.2.16",
++        "@rolldown/binding-darwin-x64": "1.2.16",
++        "@rolldown/binding-freebsd-x64": "1.2.16",
++        "@rolldown/binding-linux-arm-gnueabihf": "1.2.16",
++        "@rolldown/binding-linux-arm64-gnu": "1.2.16",
++        "@rolldown/binding-linux-arm64-musl": "1.2.16",
++        "@rolldown/binding-linux-ppc64-gnu": "1.2.16",
++        "@rolldown/binding-linux-s390x-gnu": "1.2.16",
++        "@rolldown/binding-linux-x64-gnu": "1.2.16",
++        "@rolldown/binding-linux-x64-musl": "1.2.16",
++        "@rolldown/binding-openharmony-arm64": "1.2.16",
++        "@rolldown/binding-win32-arm64-msvc": "1.2.16",
++        "@rolldown/binding-win32-x64-msvc": "1.2.16"
++      }
++    },
++    "node_modules/saxes": {
++      "version": "6.0.0",
++      "resolved": "https://registry.npmjs.org/saxes/-/saxes-6.0.0.tgz",
++      "integrity": "sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==",
++      "dev": true,
++      "license": "ISC",
++      "dependencies": {
++        "xmlchars": "^2.2.0"
++      },
++      "engines": {
++        "node": ">=v12.22.7"
++      }
++    },
++    "node_modules/source-map-js": {
++      "version": "1.2.2",
++      "resolved": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.2.tgz",
++      "integrity": "sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==",
++      "dev": true,
++      "license": "BSD-3-Clause",
++      "engines": {
++        "node": ">=0.10.0"
++      }
++    },
++    "node_modules/std-env": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/std-env/-/std-env-4.3.0.tgz",
++      "integrity": "sha512-OtU/EgQ1kIm5KwqQpBC6ZEMXrZRui11w8zgfTWp8cdO9B8OaPsbA8bTHO2P+HNo1VlUTGMVBwPhydu6poeXiag==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/tinybench": {
++      "version": "6.2.3",
++      "resolved": "https://registry.npmjs.org/tinybench/-/tinybench-6.2.3.tgz",
++      "integrity": "sha512-Al01C2JIBnO2CXCAPbpAl6sUiOZHeThGtHYNTa51JRw9PyWOCdr+9Ong05R4qg/Sk3+H645E8ov1h2c58ityNw==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
++    "node_modules/tinyexec": {
++      "version": "1.3.1",
++      "resolved": "https://registry.npmjs.org/tinyexec/-/tinyexec-1.3.1.tgz",
++      "integrity": "sha512-GCvB3aoys96IuDFBMcTB46JOR6mdMtAToqwiW8JlWhsoh1mhHi/xn9ss/Dg7N555GiJyEt2qzoG/NHCwM6h1EA==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/tinyglobby": {
++      "version": "0.2.17",
++      "resolved": "https://registry.npmjs.org/tinyglobby/-/tinyglobby-0.2.17.tgz",
++      "integrity": "sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "fdir": "^6.5.0",
++        "picomatch": "^4.0.4"
++      },
++      "engines": {
++        "node": ">=12.0.0"
++      },
++      "funding": {
++        "url": "https://github.com/sponsors/SuperchupuDev"
++      }
++    },
++    "node_modules/tldts": {
++      "version": "7.4.19",
++      "resolved": "https://registry.npmjs.org/tldts/-/tldts-7.4.19.tgz",
++      "integrity": "sha512-48dH6aSpQnpbzDUc4vIQZ1VjB8tkK+e8c1yx05/SZK+rkssgjEOlxDd/yU8/a4vGYQ9vRgJr9dwMq9TJ0b3X2Q==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "tldts-core": "^7.4.19"
++      },
++      "bin": {
++        "tldts": "bin/cli.js"
++      }
++    },
++    "node_modules/tldts-core": {
++      "version": "7.4.20",
++      "resolved": "https://registry.npmjs.org/tldts-core/-/tldts-core-7.4.20.tgz",
++      "integrity": "sha512-C630TWXZCZmLq0F2bW4QqwnaaxCQ/svpAqvJwnC4JvgEM5ohhBnGsEzTLSOXcN+xjz+kEaHS5uoWIw2klnqd0A==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/tough-cookie": {
++      "version": "6.0.2",
++      "resolved": "https://registry.npmjs.org/tough-cookie/-/tough-cookie-6.0.2.tgz",
++      "integrity": "sha512-exgYmnmL/sJpR3upZfXG5PoatXQii55xAiXGXzY+sROLZ/Y+SLcp9PgJNI9Vz37HpQ74WvDcLT8eqm+kV3FzrA==",
++      "dev": true,
++      "license": "BSD-3-Clause",
++      "dependencies": {
++        "tldts": "^7.0.5"
++      },
++      "engines": {
++        "node": ">=16"
++      }
++    },
++    "node_modules/tr46": {
++      "version": "7.0.0",
++      "resolved": "https://registry.npmjs.org/tr46/-/tr46-7.0.0.tgz",
++      "integrity": "sha512-BcDSDW+SIGWVOns1Zm6Yg91q9AEj7eaID0QDY9oIqJD1A8dscNwMcl9Sms2DeuWCNov1X0/oXanHGYQBSLwZsg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "punycode": "^2.3.1"
++      },
++      "engines": {
++        "node": "^22.14.0 || >=24.0.0"
++      }
++    },
++    "node_modules/typescript": {
++      "version": "7.0.2",
++      "resolved": "https://registry.npmjs.org/typescript/-/typescript-7.0.2.tgz",
++      "integrity": "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "bin": {
++        "tsc": "bin/tsc"
++      },
++      "engines": {
++        "node": ">=16.20.0"
++      },
++      "optionalDependencies": {
++        "@typescript/typescript-aix-ppc64": "7.0.2",
++        "@typescript/typescript-darwin-arm64": "7.0.2",
++        "@typescript/typescript-darwin-x64": "7.0.2",
++        "@typescript/typescript-freebsd-arm64": "7.0.2",
++        "@typescript/typescript-freebsd-x64": "7.0.2",
++        "@typescript/typescript-linux-arm": "7.0.2",
++        "@typescript/typescript-linux-arm64": "7.0.2",
++        "@typescript/typescript-linux-loong64": "7.0.2",
++        "@typescript/typescript-linux-mips64el": "7.0.2",
++        "@typescript/typescript-linux-ppc64": "7.0.2",
++        "@typescript/typescript-linux-riscv64": "7.0.2",
++        "@typescript/typescript-linux-s390x": "7.0.2",
++        "@typescript/typescript-linux-x64": "7.0.2",
++        "@typescript/typescript-netbsd-arm64": "7.0.2",
++        "@typescript/typescript-netbsd-x64": "7.0.2",
++        "@typescript/typescript-openbsd-arm64": "7.0.2",
++        "@typescript/typescript-openbsd-x64": "7.0.2",
++        "@typescript/typescript-sunos-x64": "7.0.2",
++        "@typescript/typescript-win32-arm64": "7.0.2",
++        "@typescript/typescript-win32-x64": "7.0.2"
++      }
++    },
++    "node_modules/undici": {
++      "version": "8.12.3",
++      "resolved": "https://registry.npmjs.org/undici/-/undici-8.12.3.tgz",
++      "integrity": "sha512-+fdndUTwBP86cVjihTp21hZHo7d6oj1c/47XPA3lL8mM0XHs+C4EkcjmgRsFnFk2f/UONGDy9ItBItmXsLOQHw==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=22.19.0"
++      }
++    },
++    "node_modules/vite": {
++      "version": "8.3.5",
++      "resolved": "https://registry.npmjs.org/vite/-/vite-8.3.5.tgz",
++      "integrity": "sha512-z1YpjieJ9g0ebTmQpLBv/oq9E3F9EIlOe+7LahW8SrE3LTiG3udBRUXQOlYXP9b+IC2q2phHeVxj9xGlw34OEQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "lightningcss": "^1.33.0",
++        "picomatch": "^4.0.7",
++        "postcss": "^8.5.30",
++        "rolldown": "~1.2.14",
++        "tinyglobby": "^0.2.17"
++      },
++      "bin": {
++        "vite": "bin/vite.js"
++      },
++      "engines": {
++        "node": "^20.19.0 || >=22.12.0"
++      },
++      "funding": {
++        "url": "https://github.com/vitejs/vite?sponsor=1"
++      },
++      "optionalDependencies": {
++        "fsevents": "~2.3.3"
++      },
++      "peerDependencies": {
++        "@types/node": "^20.19.0 || >=22.12.0",
++        "@vitejs/devtools": "^0.7.1 || ^0.8.0",
++        "esbuild": "^0.27.0 || ^0.28.0",
++        "jiti": ">=1.21.0",
++        "less": "^4.0.0",
++        "sass": "^1.70.0",
++        "sass-embedded": "^1.70.0",
++        "stylus": ">=0.54.8",
++        "sugarss": "^5.0.0",
++        "terser": "^5.16.0",
++        "tsx": "^4.8.1",
++        "yaml": "^2.4.2"
++      },
++      "peerDependenciesMeta": {
++        "@types/node": {
++          "optional": true
++        },
++        "@vitejs/devtools": {
++          "optional": true
++        },
++        "esbuild": {
++          "optional": true
++        },
++        "jiti": {
++          "optional": true
++        },
++        "less": {
++          "optional": true
++        },
++        "sass": {
++          "optional": true
++        },
++        "sass-embedded": {
++          "optional": true
++        },
++        "stylus": {
++          "optional": true
++        },
++        "sugarss": {
++          "optional": true
++        },
++        "terser": {
++          "optional": true
++        },
++        "tsx": {
++          "optional": true
++        },
++        "yaml": {
++          "optional": true
++        }
++      }
++    },
++    "node_modules/vitest": {
++      "version": "5.1.0",
++      "resolved": "https://registry.npmjs.org/vitest/-/vitest-5.1.0.tgz",
++      "integrity": "sha512-MzmNFnrwa8v8lF1bLxw3UJ4EREwVOVb75VqJZmUDRjJ6EluK/x9th7qTbaeDk41WxE1GxWqmTXcdsfobfH5sOA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@types/chai": "^5.2.2",
++        "@vitest/mocker": "5.1.0",
++        "chai": "^6.3.0",
++        "es-module-lexer": "^2.3.2",
++        "expect-type": "^1.4.0",
++        "magic-string": "^1.4.3",
++        "obug": "^3.0.0",
++        "picomatch": "^4.0.7",
++        "std-env": "^4.3.0",
++        "tinybench": "^6.2.2",
++        "tinyexec": "^1.3.1",
++        "tinyglobby": "^0.2.17",
++        "why-is-node-running": "3.2.1"
++      },
++      "bin": {
++        "vitest": "vitest.mjs"
++      },
++      "engines": {
++        "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
++      },
++      "funding": {
++        "url": "https://opencollective.com/vitest"
++      },
++      "peerDependencies": {
++        "@edge-runtime/vm": "*",
++        "@opentelemetry/api": "^1.9.0",
++        "@types/node": "^22.0.0 || >=24.0.0",
++        "@vitest/browser-playwright": "5.1.0",
++        "@vitest/browser-preview": "5.1.0",
++        "@vitest/browser-webdriverio": "^5.0.0-beta.5 || >=5.0.0",
++        "@vitest/coverage-istanbul": "5.1.0",
++        "@vitest/coverage-v8": "5.1.0",
++        "@vitest/ui": "5.1.0",
++        "happy-dom": "*",
++        "jsdom": "*",
++        "vite": "^6.4.0 || ^7.0.0 || ^8.0.0"
++      },
++      "peerDependenciesMeta": {
++        "@edge-runtime/vm": {
++          "optional": true
++        },
++        "@opentelemetry/api": {
++          "optional": true
++        },
++        "@types/node": {
++          "optional": true
++        },
++        "@vitest/browser-playwright": {
++          "optional": true
++        },
++        "@vitest/browser-preview": {
++          "optional": true
++        },
++        "@vitest/browser-webdriverio": {
++          "optional": true
++        },
++        "@vitest/coverage-istanbul": {
++          "optional": true
++        },
++        "@vitest/coverage-v8": {
++          "optional": true
++        },
++        "@vitest/ui": {
++          "optional": true
++        },
++        "happy-dom": {
++          "optional": true
++        },
++        "jsdom": {
++          "optional": true
++        },
++        "vite": {
++          "optional": false
++        }
++      }
++    },
++    "node_modules/w3c-xmlserializer": {
++      "version": "6.0.0",
++      "resolved": "https://registry.npmjs.org/w3c-xmlserializer/-/w3c-xmlserializer-6.0.0.tgz",
++      "integrity": "sha512-4Nsy8K5Tr6SPDH9jhKJOHf7ChDrc1zufZTVSF7x72hwuEXBqxqk9G6cK+K2NRUtB3iELRJqjXb4JPDMBjMTl2Q==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "xml-name-validator": "^5.0.0"
++      },
++      "engines": {
++        "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
++      }
++    },
++    "node_modules/webidl-conversions": {
++      "version": "8.0.1",
++      "resolved": "https://registry.npmjs.org/webidl-conversions/-/webidl-conversions-8.0.1.tgz",
++      "integrity": "sha512-BMhLD/Sw+GbJC21C/UgyaZX41nPt8bUTg+jWyDeg7e7YN4xOM05YPSIXceACnXVtqyEw/LMClUQMtMZ+PGGpqQ==",
++      "dev": true,
++      "license": "BSD-2-Clause",
++      "engines": {
++        "node": ">=20"
++      }
++    },
++    "node_modules/whatwg-mimetype": {
++      "version": "5.0.0",
++      "resolved": "https://registry.npmjs.org/whatwg-mimetype/-/whatwg-mimetype-5.0.0.tgz",
++      "integrity": "sha512-sXcNcHOC51uPGF0P/D4NVtrkjSU2fNsm9iog4ZvZJsL3rjoDAzXZhkm2MWt1y+PUdggKAYVoMAIYcs78wJ51Cw==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=20"
++      }
++    },
++    "node_modules/whatwg-url": {
++      "version": "17.3.0",
++      "resolved": "https://registry.npmjs.org/whatwg-url/-/whatwg-url-17.3.0.tgz",
++      "integrity": "sha512-KwOAJrpf+GTgBvcBQJcP38sMF0DsQKdwtG+TxM2pW44P6E5k0hDbWrDmyuJDIF0Uef0aQq0ZoJs+5oI+k8ddhg==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@exodus/bytes": "^1.16.0",
++        "tr46": "^7.0.0",
++        "webidl-conversions": "^8.0.1"
++      },
++      "engines": {
++        "node": "^22.14.0 || >=24.0.0"
++      }
++    },
++    "node_modules/why-is-node-running": {
++      "version": "3.2.1",
++      "resolved": "https://registry.npmjs.org/why-is-node-running/-/why-is-node-running-3.2.1.tgz",
++      "integrity": "sha512-Tb2FUhB4vUsGQlfSquQLYkApkuPAFQXGFzxWKHHumVz2dK+X1RUm/HnID4+TfIGYJ1kTcwOaCk/buYCEJr6YjQ==",
++      "dev": true,
++      "license": "MIT",
++      "bin": {
++        "why-is-node-running": "cli.js"
++      },
++      "engines": {
++        "node": ">=20.11"
++      }
++    },
++    "node_modules/xml-name-validator": {
++      "version": "5.0.0",
++      "resolved": "https://registry.npmjs.org/xml-name-validator/-/xml-name-validator-5.0.0.tgz",
++      "integrity": "sha512-EvGK8EJ3DhaHfbRlETOWAS5pO9MZITeauHKJyb8wyajUfQUenkIg2MvLDTZ4T/TgIcm3HU0TFBgWWboAZ30UHg==",
++      "dev": true,
++      "license": "Apache-2.0",
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/xmlchars": {
++      "version": "2.2.0",
++      "resolved": "https://registry.npmjs.org/xmlchars/-/xmlchars-2.2.0.tgz",
++      "integrity": "sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==",
++      "dev": true,
++      "license": "MIT"
++    }
++  }
++}
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..251d0c2
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,24 @@
++{
++  "name": "annes-base",
++  "version": "0.1.0-dev.0",
++  "private": true,
++  "description": "Anne's Base — database application foundation for Anne's Office",
++  "type": "module",
++  "license": "MIT",
++  "engines": {
++    "node": ">=24.15.0"
++  },
++  "scripts": {
++    "dev": "vite --host 0.0.0.0",
++    "typecheck": "tsc --noEmit",
++    "test": "vitest run",
++    "build": "npm run typecheck && vite build",
++    "preview": "vite preview --host 0.0.0.0"
++  },
++  "devDependencies": {
++    "jsdom": "^30.1.3",
++    "typescript": "^7.0.2",
++    "vite": "^8.3.5",
++    "vitest": "^5.1.0"
++  }
++}
+diff --git a/scripts/gen-corpus.py b/scripts/gen-corpus.py
+new file mode 100644
+index 0000000..1ddd085
+--- /dev/null
++++ b/scripts/gen-corpus.py
+@@ -0,0 +1,106 @@
++#!/usr/bin/env python3
++"""Generate synthetic SQLite recovery fixtures using only the standard library."""
++import argparse
++import hashlib
++import json
++import sqlite3
++from pathlib import Path
++
++
++def generate(output):
++    """Create a new corpus directory; never overwrite an existing directory."""
++    output = Path(output)
++    output.mkdir(parents=True, exist_ok=False)
++    source = output / 'intact.sqlite'
++    with sqlite3.connect(source) as db:
++        db.executescript('''
++            PRAGMA page_size = 4096;
++            PRAGMA foreign_keys = ON;
++            CREATE TABLE customers (
++                id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT UNIQUE
++            );
++            CREATE TABLE orders (
++                id INTEGER PRIMARY KEY,
++                customer_id INTEGER NOT NULL REFERENCES customers(id),
++                amount_cents INTEGER NOT NULL CHECK(amount_cents >= 0),
++                note TEXT, payload BLOB
++            );
++            CREATE INDEX orders_customer ON orders(customer_id);
++        ''')
++        db.executemany('INSERT INTO customers VALUES (?, ?, ?)', [
++            (1, 'Example Customer', 'customer@example.invalid'),
++            (2, 'Renée Example', None),
++            (3, '架空 Example', 'fictional@example.invalid'),
++        ])
++        db.executemany('INSERT INTO orders VALUES (?, ?, ?, ?, ?)', [
++            (i, (i % 3) + 1, i * 125,
++             None if i % 5 == 0 else f'Order {i}: synthetic café note. ' * 200,
++             bytes([0, i, 255]))
++            for i in range(1, 65)
++        ])
++        db.commit()
++        assert db.execute('PRAGMA integrity_check').fetchall() == [('ok',)]
++        assert db.execute('PRAGMA foreign_key_check').fetchall() == []
++        index_page = db.execute(
++            "SELECT rootpage FROM sqlite_schema WHERE name = 'orders_customer'"
++        ).fetchone()[0]
++        expected = {}
++        for table in ('customers', 'orders'):
++            columns = '*' if table == 'customers' else 'id, customer_id, amount_cents, note, hex(payload)'
++            rows = db.execute(f'SELECT {columns} FROM {table} NOT INDEXED ORDER BY id').fetchall()
++            encoded = json.dumps(rows, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
++            expected[table] = {
++                'rows': len(rows),
++                'query': f'SELECT {columns} FROM {table} NOT INDEXED ORDER BY id',
++                'sha256': hashlib.sha256(encoded).hexdigest(),
++            }
++    # Close the connection before reading or copying the file, including on Windows.
++    db.close()
++    original = source.read_bytes()
++    bad_header = bytearray(original)
++    bad_header[:16] = bytes(16)
++    bad_index = bytearray(original)
++    index_offset = (index_page - 1) * 4096
++    bad_index[index_offset:index_offset + 4096] = bytes(4096)
++    variants = [
++        ('intact.sqlite', original, 'none', True, True),
++        ('bad-header.sqlite', bytes(bad_header), 'Zero the 16-byte SQLite signature.', False, True),
++        ('truncated.sqlite', original[:len(original) // 2], 'Remove the second half of the file.', False, False),
++        ('bad-index.sqlite', bytes(bad_index), f'Zero index root page {index_page} (orders_customer).', False, True),
++    ]
++    fixtures = []
++    for name, data, damage, healthy, full_recovery in variants:
++        if name != source.name:
++            (output / name).write_bytes(data)
++        fixtures.append({
++            'file': name, 'bytes': len(data),
++            'sha256': hashlib.sha256(data).hexdigest(),
++            'source': None if healthy else source.name,
++            'damage': damage, 'integrity_ok': healthy,
++            'full_logical_recovery_expected': full_recovery,
++        })
++    manifest = {
++        'version': 1,
++        'license': 'MIT',
++        'provenance': 'Synthetic data generated for Anne\'s Base; no third-party databases or personal data.',
++        'sqlite_version': sqlite3.sqlite_version,
++        'page_size': 4096,
++        'expected_tables': expected,
++        'fixtures': fixtures,
++    }
++    (output / 'manifest.json').write_text(
++        json.dumps(manifest, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
++    )
++    return manifest
++
++
++if __name__ == '__main__':
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--output', type=Path, default=Path('tests/corpus/generated'),
++                        help='New output directory (must not already exist).')
++    args = parser.parse_args()
++    try:
++        manifest = generate(args.output)
++    except FileExistsError:
++        parser.exit(1, f'Refusing to overwrite existing path: {args.output}\n')
++    print(f'Generated {len(manifest["fixtures"])} fixtures in {args.output}')
+diff --git a/src/commands/registry.ts b/src/commands/registry.ts
+new file mode 100644
+index 0000000..e890f2e
+--- /dev/null
++++ b/src/commands/registry.ts
+@@ -0,0 +1,62 @@
++import plan from '../../docs/commands-plan.json';
++
++export interface Command {
++  readonly id: string;
++  readonly label: string;
++  readonly tab: string;
++  readonly group: string;
++  readonly notes: string;
++  readonly shortcuts: readonly string[];
++  readonly origins: readonly string[];
++  readonly notInTabs: boolean;
++}
++
++export type CommandResult =
++  | { status: 'executed' }
++  | { status: 'unavailable' | 'unknown'; id: string };
++
++export class CommandRegistry {
++  private readonly definitions = new Map<string, Command>();
++  private readonly handlers = new Map<string, () => void>();
++
++  constructor(commands: readonly Command[]) {
++    for (const command of commands) {
++      if (this.definitions.has(command.id)) throw new Error(`Duplicate command: ${command.id}`);
++      this.definitions.set(command.id, Object.freeze({
++        ...command,
++        shortcuts: Object.freeze([...command.shortcuts]),
++        origins: Object.freeze([...command.origins]),
++      }));
++    }
++  }
++
++  get(id: string): Command | undefined { return this.definitions.get(id); }
++  all(): readonly Command[] { return [...this.definitions.values()]; }
++  isAvailable(id: string): boolean { return this.handlers.has(id); }
++
++  bind(id: string, handler: () => void): void {
++    if (!this.definitions.has(id)) throw new Error(`Unknown command: ${id}`);
++    if (this.handlers.has(id)) throw new Error(`Handler already registered: ${id}`);
++    this.handlers.set(id, handler);
++  }
++
++  execute(id: string): CommandResult {
++    if (!this.definitions.has(id)) return { status: 'unknown', id };
++    const handler = this.handlers.get(id);
++    if (!handler) return { status: 'unavailable', id };
++    handler();
++    return { status: 'executed' };
++  }
++
++  search(query: string): readonly Command[] {
++    const words = query.trim().toLocaleLowerCase('en-US').split(/\s+/).filter(Boolean);
++    return this.all().filter(command => {
++      const text = `${command.label} ${command.id} ${command.tab} ${command.group} ${command.notes}`.toLocaleLowerCase('en-US');
++      return words.every(word => text.includes(word));
++    });
++  }
++}
++
++// Metadata declares planned commands. Only an explicitly bound handler enables execution.
++export const createRegistry = (): CommandRegistry => new CommandRegistry(Object.values(plan.commands));
++export const catalog = plan;
+diff --git a/src/main.ts b/src/main.ts
+new file mode 100644
+index 0000000..204c138
+--- /dev/null
++++ b/src/main.ts
+@@ -0,0 +1,6 @@
++import './style.css';
++import { mountShell } from './ui/shell';
++
++const root = document.querySelector<HTMLElement>('#app');
++if (!root) throw new Error('Application root is missing');
++mountShell(root);
+diff --git a/src/prefs.ts b/src/prefs.ts
+new file mode 100644
+index 0000000..94fa5a6
+--- /dev/null
++++ b/src/prefs.ts
+@@ -0,0 +1,60 @@
++import { catalog, type CommandRegistry } from './commands/registry';
++
++export const PREFS_KEY = 'annesbase.preferences.v1';
++export interface Preferences {
++  version: 1;
++  qat: string[];
++  menuLayout: string;
++}
++export interface PreferenceStorage {
++  getItem(key: string): string | null;
++  setItem(key: string, value: string): void;
++}
++export const QAT_STANDARD = [
++  'file.new', 'file.open', 'file.save', 'file.email', 'file.quickPrint', 'file.printPreview',
++  'file.print', 'edit.undo', 'edit.redo', 'view.touchMode', 'file.openRecent',
++] as const;
++export const QAT_EXTRAS = [
++  'record.refreshAll', 'record.spelling', 'edit.cut', 'edit.copy', 'edit.paste', 'edit.formatPainter',
++  'sort.ascending', 'sort.descending', 'filter.bySelection', 'filter.byForm', 'filter.toggle',
++  'edit.find', 'record.new', 'record.delete', 'record.undoDelete', 'view.datasheet', 'view.design',
++  'form.propertySheet', 'dbtools.relationships', 'dbtools.codeEditor', 'query.run', 'query.explain',
++  'query.commit', 'query.rollback', 'dbtools.compactRepair', 'file.backup', 'view.navPane',
++  'xbase.dotPrompt', 'view.browseMode', 'view.findMode', 'view.layoutMode', 'view.previewMode',
++  'ai.ask', 'view.cmdSearch',
++] as const;
++export const defaultPreferences = (): Preferences => ({
++  version: 1, qat: ['file.save', 'edit.undo', 'edit.redo', 'record.refreshAll', 'view.cmdSearch'], menuLayout: 'access2003',
++});
++
++export function normalizePreferences(value: unknown, registry: CommandRegistry): Preferences {
++  if (!value || typeof value !== 'object' || !('version' in value) || value.version !== 1) return defaultPreferences();
++  const candidate = value as Partial<Preferences>;
++  return {
++    version: 1,
++    qat: Array.isArray(candidate.qat)
++      ? [...new Set(candidate.qat.filter((id): id is string => typeof id === 'string' && !!registry.get(id)))]
++      : defaultPreferences().qat,
++    menuLayout: typeof candidate.menuLayout === 'string' && Object.hasOwn(catalog.menuLayouts, candidate.menuLayout)
++      ? candidate.menuLayout : 'access2003',
++  };
++}
++
++export function loadPreferences(storage: PreferenceStorage, registry: CommandRegistry): Preferences {
++  try { return normalizePreferences(JSON.parse(storage.getItem(PREFS_KEY) ?? 'null'), registry); }
++  catch { return defaultPreferences(); }
++}
++
++export function savePreferences(storage: PreferenceStorage, prefs: Preferences): boolean {
++  try { storage.setItem(PREFS_KEY, JSON.stringify(prefs)); return true; }
++  catch { return false; }
++}
++
++export function addAllQatChoices(prefs: Preferences, registry: CommandRegistry): Preferences {
++  const first = ['file.save', 'file.print'];
++  const choices = [...new Set<string>([...QAT_STANDARD, ...QAT_EXTRAS])];
++  for (const id of choices) if (!registry.get(id)) throw new Error(`Unknown Quick Access choice: ${id}`);
++  const alphabetical = choices.filter(id => !first.includes(id)).sort((a, b) =>
++    registry.get(a)!.label.toLocaleLowerCase('en-US').localeCompare(registry.get(b)!.label.toLocaleLowerCase('en-US'), 'en-US'));
++  return { ...prefs, qat: [...new Set([...first, ...alphabetical, ...prefs.qat])] };
++}
+diff --git a/src/style.css b/src/style.css
+new file mode 100644
+index 0000000..958b206
+--- /dev/null
++++ b/src/style.css
+@@ -0,0 +1,51 @@
++:root { font-family: system-ui, sans-serif; color: #30242a; background: #f6f3f0; font-synthesis: none; }
++* { box-sizing: border-box; }
++body { margin: 0; }
++#app { max-width: 1440px; margin: auto; padding: 24px; }
++header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #d9cbd0; padding-bottom: 20px; }
++header small { color: #a3324f; font-weight: 700; letter-spacing: .18em; }
++h1 { font-family: Georgia, serif; font-size: 36px; margin: 6px 0 0; font-weight: 500; }
++h2 { font-size: 20px; margin: 0 0 12px; }
++h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #68515b; }
++header > span, .badge { font-size: 12px; padding: 6px 10px; background: #eee1e5; border-radius: 20px; white-space: nowrap; }
++.intro { padding: 36px 0 18px; max-width: 700px; }
++.intro h2 { font: 32px Georgia, serif; }
++p { line-height: 1.6; color: #68515b; }
++button, select, input, summary { font: inherit; }
++button, select { padding: 8px 12px; border: 1px solid #d9cbd0; background: white; color: #813044; border-radius: 6px; }
++button:not(:disabled), summary, select { cursor: pointer; }
++button:hover:not(:disabled) { background: #f2e6ea; }
++button:disabled { color: #756b70; background: #f5f3f3; cursor: default; }
++:focus-visible { outline: 3px solid #a3324f; outline-offset: 3px; }
++.qat { padding: 18px; background: #fff; border: 1px solid #e5dce0; border-radius: 10px; margin: 0 0 24px; }
++.qat > button { margin: 8px 8px 0 0; }
++.pins { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 8px; }
++.pin { display: flex; flex-shrink: 0; }
++.pin button:first-child { border-radius: 6px 0 0 6px; }
++.pin button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
++label { font-size: 14px; font-weight: 650; }
++.classic-menus { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
++.classic-menus > details { position: relative; }
++summary { padding: 8px; }
++.menu-items { position: absolute; top: 100%; left: 0; background: white; border: 1px solid #d9cbd0; padding: 12px; box-shadow: 0 10px 24px #30242a18; z-index: 2; min-width: 240px; max-height: 55vh; overflow: auto; }
++.menu-items button { display: block; width: 100%; text-align: left; margin: 3px 0; }
++.menu-items details { padding-left: 8px; }
++.ribbon { padding: 16px; border: 1px solid #e5dce0; border-radius: 10px; background: #fff; }
++.ribbon-groups { display: flex; overflow: auto; gap: 16px; margin-top: 10px; }
++.ribbon-groups > section { min-width: 150px; max-width: 240px; flex-shrink: 0; border-right: 1px solid #e5dce0; padding-right: 12px; }
++.ribbon button { text-align: left; display: block; width: 100%; margin: 5px 0; font-size: 13px; }
++main { padding-top: 32px; }
++input[type=search] { display: block; width: 100%; margin: 12px 0; border: 1px solid #bd9ca8; border-radius: 8px; padding: 14px; color: #30242a; background: white; }
++.results { list-style: none; padding: 0; border-top: 1px solid #ded3d7; }
++.results li { display: flex; align-items: center; gap: 12px; padding: 16px 0; border-bottom: 1px solid #ded3d7; }
++.results li > div { flex: 1; min-width: 0; }
++.results strong { font-size: 14px; }
++.results small { display: block; color: #68515b; margin-top: 6px; overflow-wrap: anywhere; }
++.status { padding: 16px 0; border-top: 1px solid #d9cbd0; }
++@media (max-width: 600px) {
++  #app { padding: 16px; }
++  h1 { font-size: 30px; }
++  .results li { flex-wrap: wrap; gap: 8px; }
++  .results li > div { flex-basis: calc(100% - 100px); }
++  .menu-items { position: fixed; left: 16px; right: 16px; top: 20vh; }
++}
+diff --git a/src/ui/shell.ts b/src/ui/shell.ts
+new file mode 100644
+index 0000000..e34b576
+--- /dev/null
++++ b/src/ui/shell.ts
+@@ -0,0 +1,185 @@
++import { catalog, createRegistry } from '../commands/registry';
++import { addAllQatChoices, defaultPreferences, loadPreferences, savePreferences, type PreferenceStorage } from '../prefs';
++
++interface MenuItem { submenu: string; items: (string | MenuItem)[] }
++
++function element<K extends keyof HTMLElementTagNameMap>(tag: K, text?: string): HTMLElementTagNameMap[K] {
++  const node = document.createElement(tag);
++  if (text !== undefined) node.textContent = text;
++  return node;
++}
++
++export function mountShell(root: HTMLElement, storage?: PreferenceStorage): void {
++  const registry = createRegistry();
++  // Access to localStorage itself can throw in private/restricted browser contexts.
++  try { storage ??= window.localStorage; } catch { /* Session-only preferences below. */ }
++  let prefs = storage ? loadPreferences(storage, registry) : defaultPreferences();
++  root.replaceChildren();
++  const header = element('header');
++  const brand = element('div');
++  brand.append(element('small', "ANNE'S OFFICE"), element('h1', "Anne's Base"));
++  header.append(brand, element('span', 'Early preview'));
++  const intro = element('section');
++  intro.className = 'intro';
++  intro.append(element('h2', 'A place for your data.'), element('p',
++    'Explore the command shell. Database creation, opening, editing and recovery are still in development.'));
++
++  const status = element('p', 'No database is open.');
++  status.className = 'status';
++  status.setAttribute('role', 'status');
++  const persist = () => {
++    if (!storage || !savePreferences(storage, prefs)) status.textContent = 'Preferences apply for this session; browser storage is unavailable.';
++  };
++
++  const qat = element('section');
++  qat.className = 'qat';
++  qat.setAttribute('aria-label', 'Quick Access Bar');
++  const pins = element('div');
++  pins.className = 'pins';
++  const search = element('input');
++  search.type = 'search';
++  search.id = 'command-search';
++  search.placeholder = 'Find a command, such as “repair” or “table”';
++  const run = (id: string) => {
++    const result = registry.execute(id);
++    if (result.status !== 'executed') status.textContent = 'This command is planned and is not available yet.';
++  };
++  const commandButton = (id: string) => {
++    const command = registry.get(id);
++    if (!command) throw new Error(`Unknown catalog reference: ${id}`);
++    const button = element('button', command.label);
++    button.disabled = !registry.isAvailable(id);
++    button.title = button.disabled ? `${command.label} — planned; not implemented yet` : command.label;
++    button.addEventListener('click', () => run(id));
++    return button;
++  };
++  const renderPins = () => {
++    pins.replaceChildren();
++    for (const id of prefs.qat) {
++      const item = element('span');
++      item.className = 'pin';
++      const remove = element('button', '×');
++      remove.setAttribute('aria-label', `Unpin ${registry.get(id)!.label}`);
++      remove.addEventListener('click', () => {
++        prefs.qat = prefs.qat.filter(value => value !== id);
++        renderPins(); renderResults(); persist();
++      });
++      item.append(commandButton(id), remove);
++      pins.append(item);
++    }
++  };
++  registry.bind('view.cmdSearch', () => { search.focus(); search.scrollIntoView?.({ block: 'center' }); });
++  registry.bind('view.qatAddAll', () => {
++    prefs = addAllQatChoices(prefs, registry);
++    renderPins(); renderResults();
++    status.textContent = `All standard and extra choices are pinned (${prefs.qat.length} commands). Planned commands remain unavailable.`;
++    persist();
++  });
++  const clear = element('button', 'Clear pins');
++  clear.addEventListener('click', () => { prefs.qat = []; renderPins(); renderResults(); persist(); });
++  qat.append(element('h2', 'Quick Access'), pins, commandButton('view.qatAddAll'), clear);
++
++  const menus = element('nav');
++  menus.className = 'classic-menus';
++  menus.setAttribute('aria-label', 'Classic menus');
++  const layoutLabel = element('label', 'Menu layout ');
++  const layout = element('select');
++  for (const [id, value] of Object.entries(catalog.menuLayouts)) {
++    const option = element('option', value.name);
++    option.value = id;
++    layout.append(option);
++  }
++  layout.value = prefs.menuLayout;
++  layoutLabel.append(layout);
++  function renderMenuItems(parent: HTMLElement, items: (string | MenuItem)[]) {
++    for (const item of items) {
++      if (typeof item === 'string') parent.append(item === '---' ? element('hr') : commandButton(item));
++      else {
++        const nested = element('details');
++        nested.append(element('summary', item.submenu));
++        renderMenuItems(nested, item.items);
++        parent.append(nested);
++      }
++    }
++  }
++  const renderMenus = () => {
++    menus.replaceChildren();
++    const selected = catalog.menuLayouts[prefs.menuLayout as keyof typeof catalog.menuLayouts];
++    for (const menu of selected.menus) {
++      const dropdown = element('details');
++      dropdown.append(element('summary', menu.name));
++      const content = element('div');
++      content.className = 'menu-items';
++      renderMenuItems(content, menu.items);
++      dropdown.append(content);
++      menus.append(dropdown);
++    }
++  };
++  layout.addEventListener('change', () => { prefs.menuLayout = layout.value; renderMenus(); persist(); });
++
++  const ribbon = element('section');
++  ribbon.className = 'ribbon';
++  ribbon.setAttribute('aria-label', 'Ribbon');
++  const tabLabel = element('label', 'Ribbon tab ');
++  const tab = element('select');
++  for (const value of catalog.tabs) {
++    const option = element('option', value.name);
++    option.value = value.name;
++    tab.append(option);
++  }
++  tab.value = 'Home';
++  tabLabel.append(tab);
++  const groups = element('div');
++  groups.className = 'ribbon-groups';
++  const renderRibbon = () => {
++    groups.replaceChildren();
++    const selected = catalog.tabs.find(value => value.name === tab.value)!;
++    const selectedGroups = tab.value === 'Home'
++      ? catalog.homeTab.map(group => ({ name: group.group, commands: group.commands })) : selected.groups;
++    for (const group of selectedGroups) {
++      const section = element('section');
++      section.append(element('h3', group.name));
++      for (const id of group.commands) {
++        if (!registry.get(id)!.notInTabs) section.append(commandButton(id));
++      }
++      groups.append(section);
++    }
++  };
++  tab.addEventListener('change', renderRibbon);
++  ribbon.append(tabLabel, groups);
++
++  const main = element('main');
++  const searchLabel = element('label', 'Command search');
++  searchLabel.htmlFor = search.id;
++  const count = element('p');
++  count.setAttribute('role', 'status');
++  const results = element('ul');
++  results.className = 'results';
++  function renderResults() {
++    const matches = registry.search(search.value);
++    count.textContent = `${matches.length} commands found · showing ${Math.min(60, matches.length)}. Search to narrow the list.`;
++    results.replaceChildren();
++    for (const command of matches.slice(0, 60)) {
++      const row = element('li');
++      const description = element('div');
++      description.append(element('strong', command.label), element('small', `${command.tab} / ${command.group} · ${command.id}`));
++      const state = element('span', registry.isAvailable(command.id) ? 'Available' : 'Planned');
++      state.className = 'badge';
++      const pin = element('button', prefs.qat.includes(command.id) ? 'Unpin' : 'Pin');
++      pin.setAttribute('aria-label', `${prefs.qat.includes(command.id) ? 'Unpin' : 'Pin'} ${command.label}`);
++      pin.addEventListener('click', () => {
++        prefs.qat = prefs.qat.includes(command.id) ? prefs.qat.filter(id => id !== command.id) : [...prefs.qat, command.id];
++        renderPins(); renderResults(); persist();
++      });
++      const execute = commandButton(command.id);
++      execute.textContent = 'Run';
++      execute.setAttribute('aria-label', `Run ${command.label}`);
++      row.append(description, state, pin, execute);
++      results.append(row);
++    }
++  }
++  search.addEventListener('input', renderResults);
++  main.append(searchLabel, search, count, results);
++  root.append(header, intro, qat, layoutLabel, menus, ribbon, main, status);
++  renderPins(); renderMenus(); renderRibbon(); renderResults();
++}
+diff --git a/tests/catalog.test.ts b/tests/catalog.test.ts
+new file mode 100644
+index 0000000..905c303
+--- /dev/null
++++ b/tests/catalog.test.ts
+@@ -0,0 +1,58 @@
++import { describe, expect, it, vi } from 'vitest';
++import { catalog, CommandRegistry, createRegistry } from '../src/commands/registry';
++
++describe('command catalog', () => {
++  it('preserves the planned metadata and IDs in the runtime registry', () => {
++    const registry = createRegistry();
++    expect(registry.all()).toEqual(Object.values(catalog.commands));
++    for (const [id, command] of Object.entries(catalog.commands)) {
++      expect(registry.get(id)?.id).toBe(id);
++      expect(registry.isAvailable(id)).toBe(false);
++      expect(registry.execute(id)).toEqual({ status: 'unavailable', id });
++      expect(registry.get(id)).toEqual(command);
++    }
++  });
++
++  it('rejects duplicate commands and unknown or duplicate handlers', () => {
++    const command = createRegistry().all()[0];
++    expect(() => new CommandRegistry([command, command])).toThrow('Duplicate command');
++    const registry = createRegistry();
++    expect(() => registry.bind('missing.command', () => {})).toThrow('Unknown command');
++    registry.bind(command.id, () => {});
++    expect(() => registry.bind(command.id, () => {})).toThrow('already registered');
++  });
++
++  it('executes only bound handlers and reports unknown IDs separately', () => {
++    const registry = createRegistry();
++    const handler = vi.fn();
++    registry.bind('view.cmdSearch', handler);
++    expect(registry.execute('view.cmdSearch')).toEqual({ status: 'executed' });
++    expect(handler).toHaveBeenCalledOnce();
++    expect(registry.execute('file.new').status).toBe('unavailable');
++    expect(registry.execute('missing.command').status).toBe('unknown');
++  });
++
++  it('finds commands by ID, label, context and multiple words', () => {
++    const registry = createRegistry();
++    expect(registry.search(' FILE.NEW ').some(command => command.id === 'file.new')).toBe(true);
++    expect(registry.search('blank database').some(command => command.id === 'file.new')).toBe(true);
++    expect(registry.search('no-such-command-123')).toEqual([]);
++    expect(registry.search('')).toHaveLength(Object.keys(catalog.commands).length);
++  });
++
++  it('resolves every menu, nested menu, ribbon and Home-tab command', () => {
++    const registry = createRegistry();
++    function visit(items: (string | { submenu: string; items: unknown[] })[]) {
++      for (const item of items) {
++        if (typeof item === 'string') {
++          if (item !== '---') expect(registry.get(item), item).toBeDefined();
++        } else visit(item.items as Parameters<typeof visit>[0]);
++      }
++    }
++    for (const layout of Object.values(catalog.menuLayouts)) {
++      for (const menu of layout.menus) visit(menu.items);
++    }
++    for (const tab of catalog.tabs) for (const group of tab.groups) visit(group.commands);
++    for (const group of catalog.homeTab) visit(group.commands);
++  });
++});
+diff --git a/tests/corpus/README.md b/tests/corpus/README.md
+new file mode 100644
+index 0000000..96ea8b9
+--- /dev/null
++++ b/tests/corpus/README.md
+@@ -0,0 +1,45 @@
++# Database test corpus
++
++Generate the first synthetic SQLite fixtures from the repository root:
++
++```bash
++# Termux: pkg install python
++python3 scripts/gen-corpus.py
++python3 -m unittest discover -s tests -p 'test_*.py' -v
++```
++
++The generator uses Python's standard-library SQLite module and writes to
++`tests/corpus/generated/`. Use `--output PATH` for another **new** directory.
++Existing paths are refused to protect fixtures and local databases. Tests use
++temporary directories and do not require generated files to be present.
++
++The generated data is original, fictional, and covered by the project's MIT
++license. It includes related customers and orders, foreign keys, a unique
++constraint, an index, null values, Unicode text, long overflow-page text and
++binary values. It is ordinary SQLite, not an implementation of the planned
++`.qbase` catalog.
++
++| Fixture | Purpose | Recovery expectation |
++|---|---|---|
++| `intact.sqlite` | Baseline; integrity and foreign-key checks pass | All 3 customers and 64 orders |
++| `bad-header.sqlite` | SQLite signature replaced with zero bytes | All data after signature restoration |
++| `bad-index.sqlite` | Secondary index root page zeroed | All data through table scans; rebuild the index |
++| `truncated.sqlite` | Second half of the file removed | Diagnose damage; recovery extent is not yet specified |
++
++`manifest.json` records provenance, SQLite version, mutations, file sizes and
++SHA-256 checksums. The baseline queries, counts and logical-result hashes provide
++ground truth for future recovery tests. Binary fields are represented with
++SQLite `hex()`; logical hashes use UTF-8 JSON with compact separators and rows
++ordered by primary key. The corrupt variants all derive from the same closed,
++intact database. Tests open fixtures read-only and check that diagnosis leaves
++their bytes unchanged.
++
++Generation is repeatable on the same Python/SQLite toolchain. SQLite versions may
++produce different physical layouts and binary checksums; the manifest records
++the version and the generator discovers the index page rather than assuming its
++position. Future readers should compare recovered logical data against the
++manifest, not depend on fixed page numbers or binary hashes from another version.
++
++This completes only the SQLite seed portion of the roadmap's corpus task. Access,
++xBase, Paradox, other legacy formats, WAL/journal cases and recovery-score tests
++remain outstanding. No database recovery engine is implemented yet.
+diff --git a/tests/prefs.test.ts b/tests/prefs.test.ts
+new file mode 100644
+index 0000000..5ef0a8b
+--- /dev/null
++++ b/tests/prefs.test.ts
+@@ -0,0 +1,30 @@
++import { describe, expect, it } from 'vitest';
++import { createRegistry } from '../src/commands/registry';
++import { addAllQatChoices, defaultPreferences, loadPreferences, normalizePreferences, QAT_EXTRAS, QAT_STANDARD, savePreferences } from '../src/prefs';
++
++describe('preferences', () => {
++  const registry = createRegistry();
++  it('filters stale IDs, invalid values and duplicates', () => {
++    expect(normalizePreferences({ version: 1, qat: ['file.new', 'missing', 5, 'file.new'], menuLayout: '__proto__' }, registry))
++      .toEqual({ version: 1, qat: ['file.new'], menuLayout: 'access2003' });
++    expect(normalizePreferences({ version: 99 }, registry)).toEqual(defaultPreferences());
++    expect(normalizePreferences(null, registry)).toEqual(defaultPreferences());
++  });
++  it('handles malformed JSON and unavailable storage', () => {
++    expect(loadPreferences({ getItem: () => '{', setItem: () => {} }, registry)).toEqual(defaultPreferences());
++    const blocked = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('full'); } };
++    expect(loadPreferences(blocked, registry)).toEqual(defaultPreferences());
++    expect(savePreferences(blocked, defaultPreferences())).toBe(false);
++  });
++  it('puts Save and Print first, sorts choices and keeps other existing pins', () => {
++    const prefs = { ...defaultPreferences(), qat: ['file.open', 'file.new', 'ai.diagnose'] };
++    const all = addAllQatChoices(prefs, registry);
++    expect(all.qat.slice(0, 2)).toEqual(['file.save', 'file.print']);
++    expect(new Set(all.qat)).toEqual(new Set([...QAT_STANDARD, ...QAT_EXTRAS, ...prefs.qat]));
++    expect(all.qat.at(-1)).toBe('ai.diagnose');
++    const labels = all.qat.slice(2, -1).map(id => registry.get(id)!.label.toLocaleLowerCase('en-US'));
++    expect(labels).toEqual([...labels].sort((a, b) => a.localeCompare(b, 'en-US')));
++    expect(addAllQatChoices(all, registry)).toEqual(all);
++    expect(prefs.qat).toEqual(['file.open', 'file.new', 'ai.diagnose']);
++  });
++});
+diff --git a/tests/shell.test.ts b/tests/shell.test.ts
+new file mode 100644
+index 0000000..aa73eef
+--- /dev/null
++++ b/tests/shell.test.ts
+@@ -0,0 +1,77 @@
++// @vitest-environment jsdom
++import { afterEach, describe, expect, it } from 'vitest';
++import { catalog } from '../src/commands/registry';
++import { PREFS_KEY, QAT_EXTRAS, QAT_STANDARD } from '../src/prefs';
++import { mountShell } from '../src/ui/shell';
++
++afterEach(() => { document.body.replaceChildren(); window.localStorage.clear(); });
++
++function mount() {
++  const root = document.createElement('div');
++  document.body.append(root);
++  mountShell(root);
++  return root;
++}
++function findButton(root: HTMLElement, text: string) {
++  const found = [...root.querySelectorAll('button')].find(button => button.textContent === text);
++  if (!found) throw new Error(`Missing button: ${text}`);
++  return found;
++}
++
++describe('application shell', () => {
++  it('searches and keeps unimplemented commands disabled', () => {
++    const root = mount();
++    const search = root.querySelector<HTMLInputElement>('input[type=search]')!;
++    search.value = 'file.new';
++    search.dispatchEvent(new Event('input'));
++    expect(root.querySelector('.results')?.textContent).toContain('New Blank Database');
++    for (const button of root.querySelectorAll<HTMLButtonElement>('.results button[aria-label^="Run"]')) {
++      expect(button.disabled).toBe(true);
++    }
++    const searchButton = [...root.querySelectorAll<HTMLButtonElement>('.pins button')].find(button => button.textContent === catalog.commands['view.cmdSearch'].label)!;
++    searchButton.click();
++    expect(document.activeElement).toBe(search);
++  });
++
++  it('persists pins, restores them, adds all choices and clears them', () => {
++    let root = mount();
++    findButton(root, 'Pin').click();
++    const saved = JSON.parse(window.localStorage.getItem(PREFS_KEY)!);
++    expect(saved.qat).toContain('file.new');
++    mountShell(root);
++    expect(root.querySelector('.pins')?.textContent).toContain('New Blank Database');
++    findButton(root, catalog.commands['view.qatAddAll'].label).click();
++    expect(root.querySelectorAll('.pin')).toHaveLength(new Set([...QAT_STANDARD, ...QAT_EXTRAS]).size);
++    findButton(root, 'Clear pins').click();
++    expect(root.querySelectorAll('.pin')).toHaveLength(0);
++    root = mount();
++    expect(root.querySelectorAll('.pin')).toHaveLength(0);
++  });
++
++  it('renders all planned menu layouts and ribbon tabs without missing IDs', () => {
++    const root = mount();
++    const [menus, tabs] = [...root.querySelectorAll('select')];
++    for (const option of menus.options) {
++      menus.value = option.value;
++      menus.dispatchEvent(new Event('change'));
++      expect(root.querySelectorAll('.classic-menus > details').length).toBeGreaterThan(0);
++    }
++    for (const option of tabs.options) {
++      tabs.value = option.value;
++      tabs.dispatchEvent(new Event('change'));
++      expect(root.querySelectorAll('.ribbon-groups section').length).toBeGreaterThan(0);
++    }
++  });
++
++  it('keeps controls working and explains when preferences cannot be saved', () => {
++    const root = document.createElement('div');
++    document.body.append(root);
++    mountShell(root, {
++      getItem: () => { throw new Error('blocked'); },
++      setItem: () => { throw new Error('blocked'); },
++    });
++    findButton(root, 'Pin').click();
++    expect(root.querySelector('.pins')?.textContent).toContain('New Blank Database');
++    expect(root.querySelector('.status')?.textContent).toContain('browser storage is unavailable');
++  });
++});
+diff --git a/tests/test_corpus.py b/tests/test_corpus.py
+new file mode 100644
+index 0000000..1c5610a
+--- /dev/null
++++ b/tests/test_corpus.py
+@@ -0,0 +1,70 @@
++"""Check fixture integrity and recovery ground truth without modifying inputs."""
++import hashlib
++import importlib.util
++import json
++import sqlite3
++import tempfile
++import unittest
++from pathlib import Path
++
++SCRIPT = Path(__file__).resolve().parents[1] / 'scripts' / 'gen-corpus.py'
++SPEC = importlib.util.spec_from_file_location('gen_corpus', SCRIPT)
++CORPUS = importlib.util.module_from_spec(SPEC)
++SPEC.loader.exec_module(CORPUS)
++
++
++class CorpusTests(unittest.TestCase):
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory()
++        self.addCleanup(self.temp.cleanup)
++        self.root = Path(self.temp.name) / 'fixtures'
++        self.manifest = CORPUS.generate(self.root)
++
++    def open_readonly(self, name):
++        db = sqlite3.connect((self.root / name).as_uri() + '?mode=ro&immutable=1', uri=True)
++        self.addCleanup(db.close)
++        return db
++
++    def test_hashes_and_damage_detection(self):
++        for fixture in self.manifest['fixtures']:
++            with self.subTest(file=fixture['file']):
++                path = self.root / fixture['file']
++                original = path.read_bytes()
++                self.assertEqual(len(original), fixture['bytes'])
++                self.assertEqual(hashlib.sha256(original).hexdigest(), fixture['sha256'])
++                try:
++                    results = self.open_readonly(fixture['file']).execute('PRAGMA integrity_check').fetchall()
++                    healthy = results == [('ok',)]
++                except sqlite3.DatabaseError:
++                    healthy = False
++                self.assertEqual(healthy, fixture['integrity_ok'])
++                self.assertEqual(path.read_bytes(), original)
++
++    def test_intact_and_index_damaged_tables_match_ground_truth(self):
++        for name in ('intact.sqlite', 'bad-index.sqlite'):
++            db = self.open_readonly(name)
++            for table, expected in self.manifest['expected_tables'].items():
++                with self.subTest(file=name, table=table):
++                    rows = db.execute(expected['query']).fetchall()
++                    self.assertEqual(len(rows), expected['rows'])
++                    encoded = json.dumps(rows, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
++                    self.assertEqual(hashlib.sha256(encoded).hexdigest(), expected['sha256'])
++        self.assertEqual(self.open_readonly('intact.sqlite').execute('PRAGMA foreign_key_check').fetchall(), [])
++
++    def test_header_repair_recovers_all_original_bytes(self):
++        damaged = (self.root / 'bad-header.sqlite').read_bytes()
++        self.assertEqual(b'SQLite format 3\0' + damaged[16:], (self.root / 'intact.sqlite').read_bytes())
++
++    def test_repeat_generation_and_overwrite_protection(self):
++        other = Path(self.temp.name) / 'second'
++        self.assertEqual(CORPUS.generate(other), self.manifest)
++        for path in self.root.iterdir():
++            self.assertEqual(path.read_bytes(), (other / path.name).read_bytes())
++        before = (self.root / 'intact.sqlite').read_bytes()
++        with self.assertRaises(FileExistsError):
++            CORPUS.generate(self.root)
++        self.assertEqual((self.root / 'intact.sqlite').read_bytes(), before)
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/tsconfig.json b/tsconfig.json
+new file mode 100644
+index 0000000..078140f
+--- /dev/null
++++ b/tsconfig.json
+@@ -0,0 +1,14 @@
++{
++  "compilerOptions": {
++    "target": "ES2022",
++    "lib": ["ES2022", "DOM", "DOM.Iterable"],
++    "module": "ESNext",
++    "moduleResolution": "Bundler",
++    "resolveJsonModule": true,
++    "strict": true,
++    "noEmit": true,
++    "skipLibCheck": true,
++    "types": ["vite/client"]
++  },
++  "include": ["src", "tests/**/*.ts"]
++}

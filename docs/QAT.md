@@ -1,6 +1,6 @@
 # Quick Access Bar plan
 
-> **Plan.** Anne's Base has an early SQLite viewer; editing and most database features remain planned. This document fixes what the Quick Access Bar (QAT) will offer. It follows the implementation already shipped in the sister apps (`QAT_STANDARD`, `QAT_EXTRAS`, `addAllQatChoices` in the shared shell).
+> **Plan.** Anne's Base has an early native editor and SQLite viewer; advanced database features remain planned. This document fixes what the Quick Access Bar (QAT) will offer. It follows the implementation already shipped in the sister apps (`QAT_STANDARD`, `QAT_EXTRAS`, `addAllQatChoices` in the shared shell).
 
 ## Principles
 

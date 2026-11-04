@@ -9,12 +9,12 @@
 #   bash scripts/termux-setup.sh             # public repository, like the sister apps
 #   bash scripts/termux-setup.sh --private   # private instead
 #
-# Environment overrides: OWNER (default socrtwo), REPO (default AnnesBase).
+# Environment overrides: OWNER (default socrtwo), REPO (default annes-base).
 # Safe to re-run: each step checks whether it was already done.
 set -euo pipefail
 
 OWNER="${OWNER:-socrtwo}"
-REPO="${REPO:-AnnesBase}"
+REPO="${REPO:-annes-base}"
 VISIBILITY="--public"
 [[ "${1:-}" == "--private" ]] && VISIBILITY="--private"
 
@@ -25,7 +25,7 @@ for tool in git gh jq; do
   command -v "$tool" >/dev/null 2>&1 || { echo "✗ $tool is missing. In Termux: pkg install -y git gh jq"; exit 1; }
 done
 gh auth status >/dev/null 2>&1 || { echo "✗ Not logged in to GitHub. Run: gh auth login && gh auth setup-git"; exit 1; }
-[[ -f "$META" ]] || { echo "✗ $META not found; run this from the AnnesBase folder"; exit 1; }
+[[ -f "$META" ]] || { echo "✗ $META not found; run this from the project folder"; exit 1; }
 
 DESC="$(jq -r '.description' "$META")"
 HOMEPAGE="$(jq -r '.homepage // ""' "$META")"

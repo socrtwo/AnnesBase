@@ -18,11 +18,12 @@ function setup(load = async () => sqlite) {
   document.body.append(root);
   const registry = createRegistry();
   const download = vi.fn();
+  const confirmDiscard = vi.fn(() => true);
   const changed = vi.fn();
-  const pane = mountDatabasePane(root, registry, changed, vi.fn(), { load, download });
+  const pane = mountDatabasePane(root, registry, changed, vi.fn(), { load, download, confirmDiscard });
   cleanups.push(pane.dispose);
   const button = (label: string) => [...root.querySelectorAll('button')].find(button => button.textContent === label)!;
-  return { root, registry, pane, download, changed, button };
+  return { root, registry, pane, download, changed, button, confirmDiscard };
 }
 function fileFrom(bytes: Uint8Array, name: string) {
   return { name, size: bytes.byteLength, arrayBuffer: async () => Uint8Array.from(bytes).buffer } as File;
@@ -93,5 +94,80 @@ describe('database workspace', () => {
     registry.execute('file.new');
     await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Untitled.qbase'));
     expect(root.textContent).toContain('no user tables');
+  });
+
+  it('creates a table, edits and deletes records, and restores them through undo', async () => {
+    const { root, registry, button } = setup();
+    button('New blank database').click();
+    await vi.waitFor(() => expect(registry.isAvailable('create.table')).toBe(true));
+    registry.execute('create.table');
+    root.querySelector<HTMLFormElement>('.database-editor form')!.requestSubmit();
+    expect(root.textContent).toContain('Table1');
+    registry.execute('record.new');
+    root.querySelector<HTMLTextAreaElement>('.database-editor textarea')!.value = 'Original record';
+    root.querySelector<HTMLFormElement>('.database-editor form')!.requestSubmit();
+    expect(root.querySelector('tbody')?.textContent).toContain('Original record');
+    root.querySelector<HTMLInputElement>('tbody input[type=radio]')!.click();
+    button('Edit selected').click();
+    root.querySelector<HTMLTextAreaElement>('.database-editor textarea')!.value = 'Edited record';
+    root.querySelector<HTMLFormElement>('.database-editor form')!.requestSubmit();
+    expect(root.querySelector('tbody')?.textContent).toContain('Edited record');
+    root.querySelector<HTMLInputElement>('tbody input[type=radio]')!.click();
+    expect(registry.isAvailable('record.delete')).toBe(true);
+    registry.execute('record.delete');
+    expect(root.querySelectorAll('tbody tr')).toHaveLength(0);
+    registry.execute('edit.undo');
+    expect(root.querySelector('tbody')?.textContent).toContain('Edited record');
+    registry.execute('edit.undo');
+    expect(root.querySelector('tbody')?.textContent).toContain('Original record');
+    expect(root.querySelector('.change-history')?.textContent).toContain('Undone');
+  });
+
+  it('guards pending changes on close, replace and reload, including failed downloads', async () => {
+    const { root, registry, button, confirmDiscard, download } = setup();
+    button('New blank database').click();
+    await vi.waitFor(() => expect(registry.isAvailable('create.table')).toBe(true));
+    button('Create table').click();
+    root.querySelector<HTMLFormElement>('.database-editor form')!.requestSubmit();
+    confirmDiscard.mockReturnValue(false);
+    button('Close database').click();
+    expect(root.querySelector('h2')?.textContent).toBe('Untitled.qbase');
+    button('Try sample database').click();
+    expect(root.querySelector('h2')?.textContent).toBe('Untitled.qbase');
+    expect(confirmDiscard).toHaveBeenCalledTimes(2);
+    const unload = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(true);
+    download.mockImplementationOnce(() => { throw new Error('Storage full'); });
+    button('Download a copy').click();
+    expect(root.textContent).toContain('Download failed: Storage full');
+    const failed = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(failed);
+    expect(failed.defaultPrevented).toBe(true);
+    button('Download a copy').click();
+    const acknowledged = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(acknowledged);
+    expect(acknowledged.defaultPrevented).toBe(false);
+    button('Close database').click();
+    expect(root.textContent).toContain('No database is open');
+  });
+
+  it('protects unsaved form drafts and honors explicit read-only opening', async () => {
+    const source = DatabaseSession.create(sqlite, true); const bytes = source.exportCopy(); source.close();
+    const { root, pane, registry, button, download, confirmDiscard } = setup();
+    await pane.openFile(fileFrom(bytes, 'native.qbase'), true);
+    expect(registry.isAvailable('create.table')).toBe(false);
+    await pane.openFile(fileFrom(bytes, 'native.qbase'));
+    button('Add record').click();
+    const input = root.querySelector<HTMLTextAreaElement>('.database-editor textarea')!;
+    input.value = 'Uncommitted draft'; input.dispatchEvent(new Event('input', { bubbles: true }));
+    button('Download a copy').click();
+    expect(download).not.toHaveBeenCalled();
+    expect(root.textContent).toContain('Save or cancel');
+    confirmDiscard.mockReturnValue(false);
+    button('Orders').click();
+    expect(root.querySelector<HTMLTextAreaElement>('.database-editor textarea')?.value).toBe('Uncommitted draft');
+    const event = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    button('Cancel editing').click();
+    const cancelled = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(cancelled);
+    expect(cancelled.defaultPrevented).toBe(false);
   });
 });

@@ -1,6 +1,6 @@
 # Code plan: macros, Basic, xBase, JavaScript and the object model
 
-> **Plan.** Anne's Base has an early SQLite viewer; editing and most database features remain planned. This document fixes how databases are automated: Access-style macros and data macros, a VBA-compatible Basic, an xBase interpreter for dBASE/FoxPro/Clipper programs, the suite's JavaScript macros, and the object model they share. Commands are on the Create, Macro, xBase and Developer tabs ([COMMANDS-PLAN.md](COMMANDS-PLAN.md)).
+> **Plan.** Anne's Base has an early native editor and SQLite viewer; advanced database features remain planned. This document fixes how databases are automated: Access-style macros and data macros, a VBA-compatible Basic, an xBase interpreter for dBASE/FoxPro/Clipper programs, the suite's JavaScript macros, and the object model they share. Commands are on the Create, Macro, xBase and Developer tabs ([COMMANDS-PLAN.md](COMMANDS-PLAN.md)).
 
 ## Principles
 

@@ -84,6 +84,21 @@ main > p { font-size: 12px; }
 .pagination { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 16px; font-size: 12px; }
 .pagination button { font-size: 12px; }
 .database-note { border-top: 1px solid #ddd; padding-top: 12px; margin-bottom: 0; }
+.database-editor { margin: 20px 0; padding: 20px; border: 1px solid #cf9cab; border-radius: 8px; background: #fffafa; }
+.database-editor h3 { font-size: 18px; font-weight: 600; color: #242424; }
+.database-editor label { display: flex; flex-direction: column; gap: 6px; }
+.database-editor input:not([type=checkbox]), .database-editor textarea { width: 100%; padding: 8px 10px; border: 1px solid #b1b1b1; border-radius: 5px; font: inherit; color: #242424; background: white; }
+.database-editor textarea { resize: vertical; }
+.database-editor input[type=checkbox] { align-self: start; }
+.field-definition { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(100px, 1fr) auto auto; align-items: end; gap: 12px; margin-bottom: 16px; }
+.record-field { display: grid; grid-template-columns: minmax(0, 1fr) 100px; gap: 12px; margin: 16px 0; }
+.record-field small { grid-column: 1 / -1; color: #616161; }
+.editor-actions { display: flex; gap: 10px; margin-top: 20px; }
+.editor-actions button:first-child { background: var(--accent); color: white; }
+.database-editor [role=alert] { color: #a12635; }
+.change-history { margin: 16px 0; border-top: 1px solid #ddd; padding-top: 8px; font-size: 12px; }
+.change-history ol { max-height: 220px; overflow: auto; padding-left: 24px; }
+.change-history li { margin: 8px 0; overflow-wrap: anywhere; }
 .backstage { display: grid; grid-template-columns: 180px minmax(0, 1fr); min-height: calc(100vh - 90px); background: #fafafa; }
 .backstage-nav { background: var(--accent); padding: 16px 0; display: flex; flex-direction: column; align-items: stretch; }
 .backstage-nav button { color: white; border: 0; border-radius: 0; background: transparent; text-align: left; font-size: 14px; padding: 12px 28px; }
@@ -119,5 +134,8 @@ main > p { font-size: 12px; }
   .database-grid { grid-template-columns: minmax(0, 1fr); }
   .database-grid nav { border-right: 0; border-bottom: 1px solid #ddd; }
   .datasheet { padding-left: 0; }
+  .database-editor { padding: 14px; }
+  .field-definition { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .record-field { grid-template-columns: minmax(0, 1fr) 72px; }
   .backstage-content p { font-size: 13px; }
 }

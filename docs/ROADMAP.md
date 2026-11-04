@@ -1,6 +1,6 @@
 # Roadmap
 
-> **In progress: early M1 SQLite preview.** The browser shell can create blank native files, read SQLite tables and download copies. Editing, journaling, persistent storage and platform packaging remain unfinished. Milestones are ordered by dependency, not by date. The release goal for each milestone from M1 on is a tagged prerelease built for every platform; that workflow is not implemented yet. Command ids refer to [COMMANDS-PLAN.md](COMMANDS-PLAN.md).
+> **In progress: early M1 native editor.** The browser shell supports native table creation, record editing, transactional history and sequential undo, plus read-only SQLite browsing. Automatic persistent storage, snapshots, full field design and platform packaging remain unfinished. Milestones are ordered by dependency, not by date. The release goal for each milestone from M1 on is a tagged prerelease built for every platform; that workflow is not implemented yet. Command ids refer to [COMMANDS-PLAN.md](COMMANDS-PLAN.md).
 
 ## M0 — Planning (this repository)
 
@@ -27,11 +27,15 @@
   - [ ] Verify historical arrangements (M0), implement the View ▸ Menus command and complete menu keyboard navigation.
 - Storage engine: SQLite WASM, `.qbase` catalog, **journal**, snapshots, encryption.
   - [x] Locally bundled SQLite WASM, experimental `0-preview` native metadata, blank/sample creation, checked read-only file opening and copy download; 32 MiB in-memory input limit.
-  - [ ] Worker/OPFS and platform storage, finalized object catalog, transaction journal, snapshots and encryption.
+  - [x] Experimental `1-preview` managed-table catalog and transactional before/after journal; sequential undo survives download/reopen. Ordinary/old/unsupported database schemas remain read-only.
+  - [ ] Worker/OPFS and platform storage, finalized object catalog, transaction grouping across multiple operations, snapshots and encryption.
 - Navigation pane and Database window; Table Datasheet and Design views with every field type, properties, validation, indexes, lookups; record commands, sort and filter (selection, form, advanced), find and replace, totals row.
   - [x] Table navigation and read-only datasheet pages, preserving integer precision and displaying nulls/blobs safely.
-  - [ ] Table creation/design, editing with undo, virtualized large-data grids, sort/filter and the remaining record commands.
+  - [x] Basic table creation (Text, Whole number, Decimal number, non-null fields, automatic integer primary key), record insert/update/delete, null controls and sequential undo; pending-edit and draft guards.
+  - [ ] Existing-table schema design, remaining field types, validation/index/lookup designers, virtualized large-data grids, sort/filter and the remaining record commands.
 - Undo Delete, Record History, Show Table as of (the journal's first uses).
+  - [x] Global Undo restores deletions and previous row values; the latest 100 journal entries are visible in Change history.
+  - [ ] Dedicated per-record history/restore, as-of table views and the full Undo Delete workflow.
 - [x] A catalog test comparing the registry with `docs/commands-plan.json`, including every menu, ribbon and Home-tab reference. This checks registration coverage, not implementation of every planned command.
 
 ## M2 — Queries and relationships

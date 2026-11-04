@@ -1,24 +1,38 @@
 # Roadmap
 
-> **Plan.** Anne's Base has no code yet. Milestones are ordered by dependency, not by date. Each milestone from M1 on ends with a tagged prerelease built for every platform by the release workflow. Command ids refer to [COMMANDS-PLAN.md](COMMANDS-PLAN.md).
+> **In progress: early M1 SQLite preview.** The browser shell can create blank native files, read SQLite tables and download copies. Editing, journaling, persistent storage and platform packaging remain unfinished. Milestones are ordered by dependency, not by date. The release goal for each milestone from M1 on is a tagged prerelease built for every platform; that workflow is not implemented yet. Command ids refer to [COMMANDS-PLAN.md](COMMANDS-PLAN.md).
 
 ## M0 — Planning (this repository)
 
 - [x] README, feature survey ([INNOVATIONS.md](INNOVATIONS.md)), command inventory ([COMMANDS-PLAN.md](COMMANDS-PLAN.md), generated from [commands-plan.src.txt](commands-plan.src.txt)), classic menu layouts ([MENUS-PLAN.md](MENUS-PLAN.md)), Quick Access Bar plan ([QAT.md](QAT.md)), AI plan ([AI-PLAN.md](AI-PLAN.md)), formats ([FORMATS-PLAN.md](FORMATS-PLAN.md)), recovery ([RECOVERY-PLAN.md](RECOVERY-PLAN.md)), code ([CODE-PLAN.md](CODE-PLAN.md)), architecture ([ARCHITECTURE-PLAN.md](ARCHITECTURE-PLAN.md)), legal notes, license, contributing guide and issue templates.
 - [x] `scripts/gen-plan.py` validates ids, menu references, origins and shortcut conflicts.
+- [x] Planning-stage CI validates plans, metadata and the synthetic corpus on Linux and Windows with Python 3.10 and 3.13; checks Termux setup script syntax on Linux. Application builds and release workflows remain in M1.
 - [ ] Verify the classic menu arrangements and default keys against installed copies or published manuals of Access 2003 and current Access, dBASE III Plus and IV, FoxPro 2.6 for DOS, Visual FoxPro 9, Paradox 4.5 for DOS and Paradox for Windows, FileMaker Pro, Lotus Approach 97, Works, LibreOffice Base, SSMS and DBeaver, and correct [menus-plan.src.txt](menus-plan.src.txt).
 - [ ] Collect an openly licensed test corpus: databases from each program in FORMATS-PLAN.md (made for the project or redistributable), and generated damaged files.
+  - [x] Synthetic SQLite seed corpus: intact relational data, damaged header, damaged secondary index and truncation; provenance, logical ground truth and read-only validation tests. See [tests/corpus/README.md](../tests/corpus/README.md).
+  - [ ] Add Access, xBase, Paradox and other format samples, WAL/journal damage and recovery-score assertions as their readers arrive.
 - [ ] Confirm the license of every on-device model candidate in AI-PLAN.md and of the optional DuckDB module.
 
 ## M1 — Shell, engine and tables
 
 - Project scaffold: TypeScript, Vite, vitest, Capacitor 8 (Android, iOS), Electron, PWA manifest and service worker; CI and release workflows from the sister apps.
+  - [x] TypeScript/Vite browser entry, vitest, lockfile and web validation CI (`npm ci`, tests, type check and production build).
+  - [ ] Capacitor, Electron, PWA/offline support and multiplatform release workflows.
 - Suite shell: command registry, ribbon, Quick Access Bar with **Add All Choices** (`view.qatAddAll`), Customize Ribbon and Keyboard, command search, Backstage, preferences, settings import/export, portable mode.
+  - [x] Registry for every planned command, search, ribbon groups, Quick Access pin/unpin/clear, standard and extra choices with Save/Print first, and browser-persisted pins/menu selection. Execution requires a real handler; unimplemented commands stay unavailable.
+  - [x] Modern Office-style ribbon tabs with keyboard navigation and Word-style File/Backstage navigation; database actions stay unavailable until implemented.
+  - [ ] Custom ribbon/key bindings, working database actions in Backstage, broader preferences, import/export and portable mode; integrate suite shell conventions as features arrive.
 - **Classic menu bar** with the Access 2003 layout (default) and View ▸ Menus.
+  - [x] Render all 15 planned layouts and nested menus with a layout selector; default to Access 2003 style.
+  - [ ] Verify historical arrangements (M0), implement the View ▸ Menus command and complete menu keyboard navigation.
 - Storage engine: SQLite WASM, `.qbase` catalog, **journal**, snapshots, encryption.
+  - [x] Locally bundled SQLite WASM, experimental `0-preview` native metadata, blank/sample creation, checked read-only file opening and copy download; 32 MiB in-memory input limit.
+  - [ ] Worker/OPFS and platform storage, finalized object catalog, transaction journal, snapshots and encryption.
 - Navigation pane and Database window; Table Datasheet and Design views with every field type, properties, validation, indexes, lookups; record commands, sort and filter (selection, form, advanced), find and replace, totals row.
+  - [x] Table navigation and read-only datasheet pages, preserving integer precision and displaying nulls/blobs safely.
+  - [ ] Table creation/design, editing with undo, virtualized large-data grids, sort/filter and the remaining record commands.
 - Undo Delete, Record History, Show Table as of (the journal's first uses).
-- A catalog test comparing the registry with `docs/commands-plan.json`.
+- [x] A catalog test comparing the registry with `docs/commands-plan.json`, including every menu, ribbon and Home-tab reference. This checks registration coverage, not implementation of every planned command.
 
 ## M2 — Queries and relationships
 

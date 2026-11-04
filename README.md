@@ -4,7 +4,34 @@
 
 An original, open-source desktop database for Android, iOS, Windows, macOS, Linux, ChromeOS and the web, in the tradition of Microsoft Access: tables, queries, forms, reports, macros and code in one file, for people who are not database administrators. Its goal is the same as the rest of the Anne's Office suite: **no missing commands**. Anne's Base gathers the commands of Access (including features Access has retired), of the classic database programs (dBASE, FoxPro and Visual FoxPro, Clipper, Paradox, FileMaker, Lotus Approach, Works, Q&A, R:BASE, DataEase, Alpha Four, HyperCard), of the open-source and server tools (LibreOffice Base, Kexi, SQLite, PostgreSQL, MySQL, SQL Server Management Studio, DBeaver, DuckDB) and of the web databases (Airtable, Notion, Quickbase, Power Apps), adds ideas of its own, and has an **AI** tab and menu for asking questions of your data, designing databases, writing queries and code, cleaning data and diagnosing damage. Every feature is a command, and every command can be put on the Quick Access Bar, on your own tab, in any classic menu layout, on a keyboard shortcut, in a macro, and found with command search. When a database is damaged, Anne's Base shows what it can recover instead of refusing to open it.
 
-> **Status: planning — no code yet.** This repository holds the plan: the feature survey, the command inventory, the classic menu layouts, the AI, formats, recovery and code plans, the intended architecture and the roadmap. Nothing here is built or released. Issues and discussion about the plan are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
+> **Status: early M1 database preview.** The browser app creates blank `.qbase` files, opens SQLite databases read-only, displays tables and records, and downloads copies. It includes a sample database, command search, Word-style File menus, ribbon groups, classic menus and Quick Access pinning. Table creation/editing, queries, journal, recovery and AI are not implemented. No platform releases have been published. The documents below describe the intended application; see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Run the preview
+
+Install Node.js 24 LTS, then run from this repository:
+
+```bash
+# Termux: pkg install nodejs-lts python
+npm ci
+npm run dev
+```
+
+Open `http://localhost:5173` in your browser. Select **Try sample database**, then choose Customers or Orders in the navigation pane. **Open SQLite file** reads a `.sqlite`, `.db` or `.qbase` from your device; **New blank database** creates an empty native file. **Download a copy** downloads a new file, never overwriting your source. File ▸ New/Open/Save/Close uses the same engine. Read-only pages show up to 100 rows; use Previous/Next for more.
+
+This preview loads files into memory, with a **32 MiB input limit**. Open data is not persisted across reloads: download a copy to keep a new file. Editing, Access files, encrypted databases and recovery are not supported. The experimental native catalog is version `0-preview`; compatibility with future versions is not promised.
+
+The dev server listens on all interfaces for device testing. The modern ribbon opens a Word-style **File** screen with Home, New, Open, Info, Save, Print, Share, Export, Close and Options pages. Use **Back** or Escape to return to the workspace. Unimplemented actions remain disabled.
+
+Command search covers all 693 planned commands; it searches labels, ids, groups and notes. Pin or unpin commands from search results, or use **Add All Choices** for the standard Quick Access set. Expand **Classic menus** below the ribbon to choose a historic layout; the default is Access 2003 style and its historical fidelity still needs verification. Pinning and menu layout are saved in browser storage when available.
+
+```bash
+npm test             # registry, catalog, preferences and shell interactions
+npm run build        # type check and production web build in dist/
+python3 scripts/gen-plan.py --check
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+```
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code that exists today. Capacitor, Electron, PWA/offline support, persistent storage and the change journal remain upcoming M1 work.
 
 ## The plan in brief
 
@@ -36,7 +63,7 @@ Each release will have builds for **Android** (APK and AAB), **iOS/iPadOS** (an 
 | **Anne's Press** | Desktop publishing | https://github.com/socrtwo/QuillPress |
 | **Anne's Folio** | PDF | https://github.com/socrtwo/QuillFolio |
 | **Anne's Lens** | Pictures | https://github.com/socrtwo/QuillLens |
-| **Anne's Base** | Databases (this project) | https://github.com/socrtwo/QuillBase |
+| **Anne's Base** | Databases (this project) | https://github.com/socrtwo/AnnesBase |
 
 The apps share one application shell: command registry, Quick Access Bar, customizable tabs and keyboard, command search, macro recorder, AI setup wizard and providers, recovery engine and platform layer. Anne's Base sends mail merges, labels and form letters to Anne's Pen, live tables to Anne's Grid, catalogs and directories to Anne's Press, searchable web directories and published apps to Anne's Loom, reports to Anne's Folio, and e-mail through Anne's Post; it takes OCR text from Anne's Folio and Anne's Lens for Records from Documents.
 
@@ -59,6 +86,8 @@ The apps share one application shell: command registry, Quick Access Bar, custom
 | [docs/LEGAL.md](docs/LEGAL.md) | Clean-room, trademark and licensing notes |
 
 The command and menu plans are generated: edit [docs/commands-plan.src.txt](docs/commands-plan.src.txt) or [docs/menus-plan.src.txt](docs/menus-plan.src.txt) and run `python3 scripts/gen-plan.py` (it also checks ids, menu references and shortcut conflicts).
+
+The [synthetic test corpus](tests/corpus/README.md) supplies intact and damaged SQLite fixtures for future storage and recovery work. Generate it with `python3 scripts/gen-corpus.py`; run its checks with `python3 -m unittest discover -s tests -p 'test_*.py' -v`. Both use only Python's standard library and work in Termux.
 
 ## Project language
 

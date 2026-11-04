@@ -1,6 +1,6 @@
 # Recovery plan: damaged databases
 
-> **Plan.** Anne's Base has no code yet. This is the design of its repair and recovery pipeline, the database counterpart of the recovery engines in the sister apps, descended from the author's [Immortal Unzipper / Immortal Zip](https://socrtwo.github.io/Immortal-Zip/), [Word Recovery](https://github.com/socrtwo/wordrecovery-SF) and [Universal File Repair Tool](https://github.com/socrtwo/Universal-File-Repair-Tool) projects. Commands are on the **Repair & Recovery** tab ([COMMANDS-PLAN.md](COMMANDS-PLAN.md#repair--recovery)).
+> **Plan.** Anne's Base has an early SQLite viewer; editing and most database features remain planned. This is the design of its repair and recovery pipeline, the database counterpart of the recovery engines in the sister apps, descended from the author's [Immortal Unzipper / Immortal Zip](https://socrtwo.github.io/Immortal-Zip/), [Word Recovery](https://github.com/socrtwo/wordrecovery-SF) and [Universal File Repair Tool](https://github.com/socrtwo/Universal-File-Repair-Tool) projects. Commands are on the **Repair & Recovery** tab ([COMMANDS-PLAN.md](COMMANDS-PLAN.md#repair--recovery)).
 
 ## Principles
 

@@ -1,10 +1,12 @@
 import type { SqlJsStatic } from 'sql.js';
 import type { CommandRegistry } from '../commands/registry';
 import { DatabaseSession, MAX_DATABASE_BYTES, PAGE_SIZE, type Cell } from '../engine/database';
+import { recordEditor, tableEditor } from './editors';
 
 export interface DatabaseDependencies {
   load: () => Promise<SqlJsStatic>;
   download: (bytes: Uint8Array, name: string) => void;
+  confirmDiscard?: () => boolean;
 }
 const defaultDependencies: DatabaseDependencies = {
   load: async () => (await import('../engine/browser')).loadSqlite(),
@@ -30,12 +32,15 @@ export function mountDatabasePane(
   changed: (name: string | undefined, busy: boolean) => void,
   showWorkspace: () => void,
   dependencies: DatabaseDependencies = defaultDependencies,
-): { openFile: (file: File) => Promise<void>; dispose: () => void } {
+): { openFile: (file: File, readOnly?: boolean) => Promise<void>; dispose: () => void } {
   let session: DatabaseSession | undefined;
   let selected: string | undefined;
   let offset = 0;
   let busy = false;
   let disposed = false;
+  let selectedRecord: string | undefined;
+  let draftChanged = false;
+  let openAsReadOnly = false;
   const pane = node('section');
   pane.className = 'database-pane';
   pane.setAttribute('aria-label', 'Database workspace');
@@ -61,8 +66,45 @@ export function mountDatabasePane(
   navigation.setAttribute('aria-label', 'Database tables');
   const data = node('div');
   data.className = 'datasheet';
-  const note = node('p', 'Read-only preview · Files stay on your device. Download a copy to keep a new database. Reloading clears the workspace. Limit: 32 MiB.');
+  const note = node('p', 'Native tables support journaled edits and undo. Other SQLite files are read-only. Download a copy to keep changes; reloading clears the workspace. Limit: 32 MiB.');
   note.className = 'database-note';
+  const editing = node('section'); editing.className = 'database-editor'; editing.hidden = true;
+  editing.setAttribute('aria-label', 'Database editor');
+  const history = node('details'); history.className = 'change-history';
+  const confirmDiscard = () => (dependencies.confirmDiscard ?? (() => window.confirm('There are unsaved changes. Discard those changes?')))();
+  const discard = () => !session?.hasChanges && !draftChanged || confirmDiscard();
+  const beforeUnload = (event: BeforeUnloadEvent) => {
+    if (session?.hasChanges || draftChanged) { event.preventDefault(); event.returnValue = ''; }
+  };
+  window.addEventListener('beforeunload', beforeUnload);
+  editing.addEventListener('input', () => { draftChanged = true; });
+  const cancelEditing = () => { editing.replaceChildren(); editing.hidden = true; draftChanged = false; };
+  function apply(change: () => void) {
+    if (busy) throw new Error('Wait for the database to finish loading.');
+    change(); cancelEditing(); selectedRecord = undefined;
+    if (selected && !session!.tables().includes(selected)) { selected = session!.tables()[0]; offset = 0; }
+    if (selected && offset > 0 && !session!.page(selected, offset).rows.length) offset = Math.max(0, offset - PAGE_SIZE);
+    message.textContent = 'Change recorded in the journal. Download a copy to keep it.';
+    render();
+  }
+  const report = (action: () => void) => { try { action(); } catch (error) { message.textContent = error instanceof Error ? error.message : String(error); } };
+  function createTable() {
+    if (!session?.editable || busy) return;
+    if (draftChanged && !confirmDiscard()) return;
+    draftChanged = false;
+    showWorkspace();
+    tableEditor(editing, (name, fields) => apply(() => { session!.createTable(name, fields); selected = name; offset = 0; }), cancelEditing);
+  }
+  function editRecord(insert = false) {
+    if (!session || !selected || !session.canEditTable(selected) || busy || !insert && !selectedRecord) return;
+    if (draftChanged && !confirmDiscard()) return;
+    draftChanged = false;
+    showWorkspace();
+    const table = selected; const id = selectedRecord;
+    recordEditor(editing, session.fields(table), insert ? undefined : session.record(table, id!), values => apply(() => {
+      if (insert) session!.insertRecord(table, values); else session!.updateRecord(table, id!, values);
+    }), cancelEditing);
+  }
 
   const display = (value: Cell): string => {
     if (value === null) return 'NULL';
@@ -73,7 +115,7 @@ export function mountDatabasePane(
   function renderTable() {
     data.replaceChildren();
     if (!session || !selected) {
-      data.append(node('p', session ? 'This database has no user tables. Table creation and editing are coming next.' : 'No database is open.'));
+      data.append(node('p', session ? session.editable ? 'This database has no user tables. Use Create table to get started.' : 'This database has no user tables.' : 'No database is open.'));
       return;
     }
     try {
@@ -85,14 +127,22 @@ export function mountDatabasePane(
       wrapper.setAttribute('role', 'region');
       wrapper.setAttribute('aria-label', `${selected} records`);
       const table = node('table');
-      const caption = node('caption', `${selected} · read-only`);
+      const editable = session.canEditTable(selected);
+      const caption = node('caption', `${selected} · ${editable ? 'Select a record to edit or delete' : 'read-only'}`);
       const head = node('thead');
       const header = node('tr');
+      if (editable) { const th = node('th', 'Select'); th.scope = 'col'; header.append(th); }
       for (const column of page.columns) { const th = node('th', column); th.scope = 'col'; header.append(th); }
       head.append(header);
       const body = node('tbody');
       for (const row of page.rows) {
         const tr = node('tr');
+        if (editable) {
+          const td = node('td'); const radio = node('input'); radio.type = 'radio'; radio.name = 'selected-record';
+          const id = String(row[0]); radio.checked = selectedRecord === id; radio.setAttribute('aria-label', `Select record ${id}`);
+          radio.addEventListener('change', () => { selectedRecord = id; syncActions(); changed(session?.name, busy); });
+          td.append(radio); tr.append(td);
+        }
         for (const value of row) {
           const td = node('td', display(value));
           if (value === null) td.className = 'null-cell';
@@ -106,10 +156,10 @@ export function mountDatabasePane(
       pagination.className = 'pagination';
       const previous = node('button', 'Previous page');
       previous.disabled = offset === 0;
-      previous.addEventListener('click', () => { offset = Math.max(0, offset - PAGE_SIZE); renderTable(); });
+      previous.addEventListener('click', () => { offset = Math.max(0, offset - PAGE_SIZE); selectedRecord = undefined; render(); });
       const next = node('button', 'Next page');
       next.disabled = !page.hasMore;
-      next.addEventListener('click', () => { offset += PAGE_SIZE; renderTable(); });
+      next.addEventListener('click', () => { offset += PAGE_SIZE; selectedRecord = undefined; render(); });
       const range = page.rows.length ? `Rows ${offset + 1}–${offset + page.rows.length}` : 'No records';
       pagination.append(previous, node('span', range), next);
       data.append(wrapper, pagination);
@@ -122,19 +172,33 @@ export function mountDatabasePane(
     for (const name of session?.tables() ?? []) {
       const item = node('button', name);
       item.setAttribute('aria-pressed', String(name === selected));
-      item.addEventListener('click', () => { selected = name; offset = 0; render(); });
+      item.addEventListener('click', () => { if (draftChanged && !confirmDiscard()) return; cancelEditing(); selectedRecord = undefined; selected = name; offset = 0; render(); });
       navigation.append(item);
     }
     for (const control of [newButton, sampleButton, openButton]) control.disabled = busy;
     exportButton.disabled = busy || !session;
     closeButton.disabled = busy || !session;
+    syncActions();
+    history.replaceChildren(node('summary', 'Change history'));
+    const entries = session?.history() ?? [];
+    const list = node('ol');
+    for (const entry of entries) list.append(node('li', `${entry.time} · ${entry.operation} · ${entry.table}${entry.recordId ? ` #${entry.recordId}` : ''}${entry.undone ? ' · Undone' : ''}`));
+    history.append(entries.length ? list : node('p', 'No changes recorded.'));
     pane.setAttribute('aria-busy', String(busy));
+    editing.inert = busy;
     renderTable();
     changed(session?.name, busy);
   }
+  function syncActions() {
+    createButton.disabled = busy || !session?.editable;
+    const canEdit = !!session && !!selected && session.canEditTable(selected);
+    addButton.disabled = busy || !canEdit;
+    editButton.disabled = deleteButton.disabled = busy || !canEdit || !selectedRecord;
+    undoButton.disabled = busy || !session?.canUndo();
+  }
 
   async function replace(create: () => Promise<DatabaseSession>) {
-    if (busy || disposed) return;
+    if (busy || disposed || !discard()) return;
     busy = true;
     message.textContent = 'Loading SQLite…';
     render();
@@ -146,10 +210,11 @@ export function mountDatabasePane(
       const tables = candidate.tables();
       session?.close();
       session = candidate;
+      cancelEditing(); selectedRecord = undefined;
       candidate = undefined;
       selected = tables[0];
       offset = 0;
-      message.textContent = `${session.name} is open read-only. ${tables.length} user tables.`;
+      message.textContent = `${session.name} is open ${session.editable ? 'for journaled editing' : 'read-only'}. ${tables.length} user tables.`;
       showWorkspace();
     } catch (error) {
       candidate?.close();
@@ -160,45 +225,57 @@ export function mountDatabasePane(
   function download() {
     if (!session || busy) return;
     showWorkspace();
+    if (draftChanged) { message.textContent = 'Save or cancel the current form before downloading a copy.'; return; }
     try {
       const base = session.name.replace(/\.[^.]+$/, '').replace(/[\\/:*?"<>|\x00-\x1f]/g, '_') || 'Database';
       const extension = session.isNative ? '.qbase' : '.sqlite';
       dependencies.download(session.exportCopy(), `${base}-copy${extension}`);
+      session.acknowledgeDownload();
       message.textContent = 'Download started. Keep the downloaded copy; this preview does not save back to the original file.';
     } catch (error) { message.textContent = `Download failed: ${error instanceof Error ? error.message : String(error)}`; }
   }
   function close() {
-    if (busy) return;
+    if (busy || !discard()) return;
     showWorkspace();
     session?.close(); session = undefined; selected = undefined; offset = 0;
+    cancelEditing(); selectedRecord = undefined;
     message.textContent = 'Database closed. Files on your device were not changed.';
     render();
   }
-  async function openFile(file: File) {
+  async function openFile(file: File, readOnly = false) {
     showWorkspace();
     await replace(async () => {
       if (file.size > MAX_DATABASE_BYTES) throw new Error('This preview supports databases up to 32 MiB.');
       const bytes = new Uint8Array(await file.arrayBuffer());
-      return DatabaseSession.open(await dependencies.load(), bytes, file.name);
+      return DatabaseSession.open(await dependencies.load(), bytes, file.name, readOnly);
     });
   }
   const newButton = button('New blank database', () => { void replace(async () => DatabaseSession.create(await dependencies.load())); });
   const sampleButton = button('Try sample database', () => { void replace(async () => DatabaseSession.create(await dependencies.load(), true)); });
-  const openButton = button('Open SQLite file', () => input.click());
+  const openButton = button('Open SQLite file', () => { openAsReadOnly = false; input.click(); });
   const exportButton = button('Download a copy', download);
   const closeButton = button('Close database', close);
-  input.addEventListener('change', () => { const file = input.files?.[0]; input.value = ''; if (file) void openFile(file); });
+  const createButton = button('Create table', createTable);
+  const addButton = button('Add record', () => report(() => editRecord(true)));
+  const editButton = button('Edit selected', () => report(() => editRecord()));
+  const deleteButton = button('Delete selected', () => report(() => { if (!draftChanged || confirmDiscard()) apply(() => session!.deleteRecord(selected!, selectedRecord!)); }));
+  const undoButton = button('Undo last change', () => report(() => { if (!draftChanged || confirmDiscard()) apply(() => session!.undo()); }));
+  input.addEventListener('change', () => { const file = input.files?.[0]; input.value = ''; const readOnly = openAsReadOnly; openAsReadOnly = false; if (file) void openFile(file, readOnly); });
   for (const [id, handler, enabled] of [
     ['file.new', () => newButton.click(), () => !busy],
-    ['file.open', () => input.click(), () => !busy],
-    ['file.openReadOnly', () => input.click(), () => !busy],
+    ['file.open', () => openButton.click(), () => !busy],
+    ['file.openReadOnly', () => { openAsReadOnly = true; input.click(); }, () => !busy],
     ['file.save', download, () => !!session && !busy],
     ['file.saveAs', download, () => !!session && !busy],
     ['file.closeDatabase', close, () => !!session && !busy],
+    ['create.table', createTable, () => !!session?.editable && !busy],
+    ['record.new', () => report(() => editRecord(true)), () => !!session && !!selected && session.canEditTable(selected) && !busy],
+    ['record.delete', () => deleteButton.click(), () => !deleteButton.disabled],
+    ['edit.undo', () => undoButton.click(), () => !!session?.canUndo() && !busy],
   ] as const) registry.bind(id, handler, enabled);
   grid.append(navigation, data);
-  pane.append(title, message, actions, input, grid, note);
+  pane.append(title, message, actions, input, editing, grid, history, note);
   container.append(pane);
   render();
-  return { openFile, dispose: () => { disposed = true; session?.close(); } };
+  return { openFile, dispose: () => { disposed = true; window.removeEventListener('beforeunload', beforeUnload); session?.close(); } };
 }

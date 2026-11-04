@@ -25,7 +25,7 @@ export function mountShell(root: HTMLElement, storage?: PreferenceStorage): void
   const intro = element('section');
   intro.className = 'intro';
   intro.append(element('h2', 'A place for your data.'), element('p',
-    'Create a blank database, try the sample, or browse your SQLite files. Editing, queries and recovery are still in development.'));
+    'Create tables and edit records in a native database, with change history and undo. Open other SQLite files read-only.'));
 
   const status = element('p', 'No database is open.');
   status.className = 'status';
@@ -247,7 +247,7 @@ export function mountShell(root: HTMLElement, storage?: PreferenceStorage): void
   workspace.append(ribbon, classic, content);
   root.append(header, workspace, backstage.element, status);
   mountDatabasePane(databaseContainer, registry, (name, busy) => {
-    status.textContent = busy ? 'Loading SQLite…' : name ? `${name} · Read-only preview` : 'No database is open.';
+    status.textContent = busy ? 'Loading SQLite…' : name ? `${name} · Database preview` : 'No database is open.';
     for (const button of root.querySelectorAll<HTMLButtonElement>('button[data-command]')) {
       const id = button.dataset.command!;
       button.disabled = !registry.isAvailable(id);

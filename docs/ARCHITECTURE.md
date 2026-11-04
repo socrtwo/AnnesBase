@@ -1,7 +1,7 @@
 # Current architecture
 
-Anne's Base currently contains a browser shell, an in-memory SQLite viewer and
-synthetic SQLite test fixtures. Table editing and the change journal do not exist yet.
+Anne's Base currently contains a browser shell, an in-memory native table editor
+with a transaction journal and undo, a read-only SQLite viewer and synthetic fixtures.
 [ARCHITECTURE-PLAN.md](ARCHITECTURE-PLAN.md) describes the intended full product.
 
 ## Web scaffold
@@ -28,7 +28,7 @@ ids, tabs, groups and notes, and displays the first 60 matches. Text is inserted
 through DOM text properties rather than HTML interpolation.
 
 Search Commands, Add All Choices, New, Open/Open Read-Only, Save/Save As (download
-a copy) and Close Database have command handlers. Availability predicates disable
+a copy), Close Database, Create Table, New Record, Delete Record and Undo have handlers. Availability predicates disable
 Save and Close without an open database and prevent overlapping file operations.
 Pin, unpin, clear-pins, tab selection and menu selection are local shell controls.
 Unimplemented commands are disabled. The classic menus use
@@ -66,28 +66,58 @@ loaded lazily by `src/engine/browser.ts` from Vite's emitted assets, without a
 runtime CDN. The sql.js license is bundled in `public/licenses/sql.js.txt`.
 
 New files contain `qb_meta` with application `annes-base` and schema version
-`0-preview`; this is an experimental catalog, not the final native format. The
-sample adds Customers and Orders with fictional data. Native metadata is hidden
+`1-preview`; this is an experimental catalog, not the final native format. The
+sample adds Customers and Orders with fictional data (relationships are not enforced).
+The old `0-preview` catalog remains readable without a silent migration. Native metadata is hidden
 from table navigation only when the application and version markers match.
 
 Opening validates the SQLite signature and `PRAGMA quick_check(1)` before
 replacing the current session. Failed opens leave the previous database intact.
-All sessions run with `PRAGMA query_only = ON`; the wrapper exposes no arbitrary
-SQL or mutation interface. Existing file bytes are never written. Export restores
+All sessions idle with `PRAGMA query_only = ON`; native mutations temporarily
+enable writes only inside the journal's transaction layer. The wrapper exposes no
+arbitrary SQL interface. Existing file bytes are never written. Export restores
 the query-only pragma because sql.js resets connection settings on export.
 
 `src/ui/databasePane.ts` owns the session and displays table names, columns and
-read-only pages of 100 rows with one lookahead row. Names are quoted, values use
+pages of 100 rows with one lookahead row. Names are quoted, values use
 DOM text nodes, integers are read as BigInt, nulls are marked and blobs show their
 byte count. Text displays are shortened after 2,000 characters without modifying
 stored data. Pages use SQLite's scan order; sorting and filtering are not provided.
 
 Files are loaded into memory with a 32 MiB input limit. This is not a worker/OPFS
-engine, large-file implementation, journal, snapshot system or encryption layer.
+engine, large-file implementation, snapshot system or encryption layer.
 The browser file picker reads a copy; Save/Save As triggers a separate download
 and does not imply the download completed or replace an existing file. Reloading
 loses the active session. There is no database autosave or saved-recent-file list.
-Table creation and user edits wait for a transaction journal and undo support.
+Closing/replacing a database and beforeunload guard pending mutations and form
+drafts. A successfully requested download clears the pending-mutation guard, but
+the UI explicitly says a started download is not a confirmed save.
+
+## Native editing and journal
+
+`src/engine/journal.ts` accepts only managed native tables: an automatic integer
+id and 1–32 Text/Integer/Real fields. Metadata (`qb_objects.fields_json`) must
+reconstruct the exact table SQL before writes are allowed. Internal schemas are
+checked on open; any trigger disables all native editing. Ordinary SQLite and
+unsupported native schemas stay read-only. Required means SQL NOT NULL; empty
+strings remain distinct from null. Whole numbers are validated against the signed
+64-bit range and bound as decimal strings to avoid JavaScript number rounding.
+
+Each create/insert/update/delete runs in an IMMEDIATE transaction, including its
+`qb_journal` entry. Row images encode integer values as tagged decimal strings.
+If the data write or journal write fails, both roll back. The sample is baseline
+data, not user history. Undo processes the newest active entry, restores before
+values or a deleted row (or drops an empty newly created table), and marks the
+entry undone in the same transaction. Before reversing insert/update, the current
+row must still match the after image. Malformed history and conflicting restores
+stop without partial changes. A new change after undo starts a new history branch;
+redo is not offered. The journal is part of the downloaded database.
+
+`src/ui/editors.ts` provides a field-list form and record forms with explicit null
+controls. Edits are committed on Save record, not per keystroke. Selection enables
+Edit/Delete; change history shows the latest 100 entries. Existing-table schema
+changes, foreign-key design, arbitrary SQLite writes, per-record restore and
+as-of views remain planned. No database autosave exists yet.
 
 ## Validation
 

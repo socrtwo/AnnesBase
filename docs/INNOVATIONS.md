@@ -1,6 +1,6 @@
 # Innovations survey
 
-> **Plan.** Anne's Base has an early SQLite viewer; editing and most database features remain planned. This survey records the database programs, past and present, whose commands and ideas Anne's Base adopts, and what it takes from each. Command ids are in [COMMANDS-PLAN.md](COMMANDS-PLAN.md); the origin codes there (ACC, DB, PDX…) refer to the programs below.
+> **Plan.** Anne's Base has an early native editor and SQLite viewer; advanced database features remain planned. This survey records the database programs, past and present, whose commands and ideas Anne's Base adopts, and what it takes from each. Command ids are in [COMMANDS-PLAN.md](COMMANDS-PLAN.md); the origin codes there (ACC, DB, PDX…) refer to the programs below.
 
 ## How to read this
 

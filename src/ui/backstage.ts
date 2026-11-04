@@ -50,7 +50,7 @@ export function createBackstage(
     const title = heading(content, page.title === 'Home' ? 'Welcome to Anne’s Base' : page.title, page.description);
     const notice = document.createElement('p');
     notice.className = 'preview-notice';
-    notice.textContent = 'Database preview · New, Open and downloading a copy are available. Editing and recovery are still in development.';
+    notice.textContent = 'Database preview · Native tables support editing with a journal and undo. Download a copy to keep changes. Recovery is still in development.';
     content.append(notice);
     if (page.title === 'Home') {
       const actions = document.createElement('div');

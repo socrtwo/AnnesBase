@@ -1,6 +1,6 @@
 # File formats and connections (plan)
 
-> **Plan.** Anne's Base has an early SQLite viewer; editing and most database features remain planned. This lists every database and data format Anne's Base intends to open, link, import or save, current and historical, with the planned fidelity and the public sources the work will be based on. Recognition is by content, not extension: *File ▸ Open* reads the first bytes and picks the reader. Commands are in [COMMANDS-PLAN.md](COMMANDS-PLAN.md#external-data).
+> **Plan.** Anne's Base has an early native editor and SQLite viewer; advanced database features remain planned. This lists every database and data format Anne's Base intends to open, link, import or save, current and historical, with the planned fidelity and the public sources the work will be based on. Recognition is by content, not extension: *File ▸ Open* reads the first bytes and picks the reader. Commands are in [COMMANDS-PLAN.md](COMMANDS-PLAN.md#external-data).
 
 Legend — **Open**: works as a live database (read and write). **Import**: data (and objects where noted) copied into a `.qbase`. **Link**: tables used in place. **Export**: written out. *R* read, *W* write.
 

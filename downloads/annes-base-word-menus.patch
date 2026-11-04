@@ -1,0 +1,493 @@
+--- a/src/ui/shell.ts
++++ b/src/ui/shell.ts
+@@ -1,5 +1,6 @@
+ import { catalog, createRegistry } from '../commands/registry';
+ import { addAllQatChoices, defaultPreferences, loadPreferences, savePreferences, type PreferenceStorage } from '../prefs';
++import { createBackstage } from './backstage';
+ 
+ interface MenuItem { submenu: string; items: (string | MenuItem)[] }
+ 
+@@ -17,6 +18,7 @@
+   root.replaceChildren();
+   const header = element('header');
+   const brand = element('div');
++  brand.className = 'brand';
+   brand.append(element('small', "ANNE'S OFFICE"), element('h1', "Anne's Base"));
+   header.append(brand, element('span', 'Early preview'));
+   const intro = element('section');
+@@ -120,33 +122,86 @@
+   const ribbon = element('section');
+   ribbon.className = 'ribbon';
+   ribbon.setAttribute('aria-label', 'Ribbon');
+-  const tabLabel = element('label', 'Ribbon tab ');
+-  const tab = element('select');
+-  for (const value of catalog.tabs) {
+-    const option = element('option', value.name);
+-    option.value = value.name;
+-    tab.append(option);
+-  }
+-  tab.value = 'Home';
+-  tabLabel.append(tab);
++  const workspace = element('div');
++  workspace.className = 'workspace';
++  const fileButton = element('button', 'File');
++  fileButton.className = 'file-tab';
++  fileButton.setAttribute('aria-expanded', 'false');
++  fileButton.setAttribute('aria-controls', 'file-backstage');
++  const backstage = createBackstage(commandButton, () => {
++    backstage.element.hidden = true;
++    workspace.hidden = false;
++    fileButton.setAttribute('aria-expanded', 'false');
++    fileButton.focus();
++  }, () => {
++    backstage.element.hidden = true;
++    workspace.hidden = false;
++    fileButton.setAttribute('aria-expanded', 'false');
++    search.focus();
++  });
++  backstage.element.id = 'file-backstage';
++  fileButton.addEventListener('click', () => {
++    workspace.hidden = true;
++    fileButton.setAttribute('aria-expanded', 'true');
++    backstage.open();
++  });
++  const tabStrip = element('div');
++  tabStrip.className = 'ribbon-tab-strip';
++  const tabs = element('div');
++  tabs.className = 'ribbon-tabs';
++  tabs.setAttribute('role', 'tablist');
++  tabs.setAttribute('aria-label', 'Ribbon tabs');
++  let activeTab = 'Home';
++  const tabButtons: HTMLButtonElement[] = [];
+   const groups = element('div');
++  groups.id = 'ribbon-panel';
+   groups.className = 'ribbon-groups';
++  groups.setAttribute('role', 'tabpanel');
+   const renderRibbon = () => {
+     groups.replaceChildren();
+-    const selected = catalog.tabs.find(value => value.name === tab.value)!;
+-    const selectedGroups = tab.value === 'Home'
++    for (const button of tabButtons) {
++      const selected = button.textContent === activeTab;
++      button.setAttribute('aria-selected', String(selected));
++      button.tabIndex = selected ? 0 : -1;
++      if (selected) groups.setAttribute('aria-labelledby', button.id);
++    }
++    const selected = catalog.tabs.find(value => value.name === activeTab)!;
++    const selectedGroups = activeTab === 'Home'
+       ? catalog.homeTab.map(group => ({ name: group.group, commands: group.commands })) : selected.groups;
+     for (const group of selectedGroups) {
+       const section = element('section');
+-      section.append(element('h3', group.name));
++      const commands = element('div');
++      commands.className = 'ribbon-commands';
+       for (const id of group.commands) {
+-        if (!registry.get(id)!.notInTabs) section.append(commandButton(id));
++        if (!registry.get(id)!.notInTabs) commands.append(commandButton(id));
+       }
++      section.append(commands, element('h3', group.name));
+       groups.append(section);
+     }
+   };
+-  tab.addEventListener('change', renderRibbon);
+-  ribbon.append(tabLabel, groups);
++  for (const value of catalog.tabs.filter(tab => tab.name !== 'File')) {
++    const button = element('button', value.name);
++    button.id = `ribbon-tab-${value.prefix}`;
++    button.setAttribute('role', 'tab');
++    button.setAttribute('aria-controls', groups.id);
++    button.addEventListener('click', () => { activeTab = value.name; renderRibbon(); });
++    button.addEventListener('keydown', event => {
++      const index = tabButtons.indexOf(button);
++      let next: number;
++      if (event.key === 'ArrowRight') next = (index + 1) % tabButtons.length;
++      else if (event.key === 'ArrowLeft') next = (index - 1 + tabButtons.length) % tabButtons.length;
++      else if (event.key === 'Home') next = 0;
++      else if (event.key === 'End') next = tabButtons.length - 1;
++      else return;
++      event.preventDefault();
++      tabButtons[next].click();
++      tabButtons[next].focus();
++    });
++    tabButtons.push(button);
++    tabs.append(button);
++  }
++  tabStrip.append(fileButton, tabs);
++  ribbon.append(tabStrip, groups);
+ 
+   const main = element('main');
+   const searchLabel = element('label', 'Command search');
+@@ -180,6 +235,13 @@
+   }
+   search.addEventListener('input', renderResults);
+   main.append(searchLabel, search, count, results);
+-  root.append(header, intro, qat, layoutLabel, menus, ribbon, main, status);
++  const classic = element('details');
++  classic.className = 'classic-options';
++  classic.append(element('summary', 'Classic menus'), layoutLabel, menus);
++  const content = element('div');
++  content.className = 'workspace-content';
++  content.append(intro, qat, main);
++  workspace.append(ribbon, classic, content);
++  root.append(header, workspace, backstage.element, status);
+   renderPins(); renderMenus(); renderRibbon(); renderResults();
+ }
+--- /dev/null
++++ b/src/ui/backstage.ts
+@@ -0,0 +1,101 @@
++export const FILE_PAGES = [
++  { title: 'Home', description: 'Your databases, together.', commands: [] },
++  { title: 'New', description: 'Start with a blank database or a template.', commands: ['file.new', 'file.newFromTemplate', 'file.newFromSheet'] },
++  { title: 'Open', description: 'Browse your device or return to a recent database.', commands: ['file.open', 'file.openReadOnly', 'file.openRecent'] },
++  { title: 'Info', description: 'Manage database properties, protection and backups.', commands: ['file.properties', 'file.backup', 'file.encrypt'] },
++  { title: 'Save', description: 'Save your database or create a separate copy.', commands: ['file.save', 'file.saveAs', 'file.saveDatabaseAs'] },
++  { title: 'Print', description: 'Preview and print tables, forms and reports.', commands: ['file.print', 'file.printPreview', 'file.pageSetup'] },
++  { title: 'Share', description: 'Send a database or publish it for others.', commands: ['file.share', 'file.email', 'file.publishServer'] },
++  { title: 'Export', description: 'Take your work into another format.', commands: ['file.exportPdf', 'file.exportSqlScript', 'file.exportTextFolder'] },
++  { title: 'Close', description: 'Close the current database.', commands: ['file.closeDatabase'] },
++  { title: 'Options', description: 'Make Anne’s Base work your way.', commands: [] },
++] as const;
++
++export function createBackstage(
++  commandButton: (id: string) => HTMLButtonElement,
++  onClose: () => void,
++  onCustomize: () => void,
++): { element: HTMLElement; open: () => void } {
++  const backstage = document.createElement('section');
++  backstage.className = 'backstage';
++  backstage.hidden = true;
++  backstage.setAttribute('aria-label', 'File');
++  const sidebar = document.createElement('nav');
++  sidebar.className = 'backstage-nav';
++  sidebar.setAttribute('aria-label', 'File navigation');
++  const back = document.createElement('button');
++  back.className = 'backstage-back';
++  back.textContent = '← Back';
++  back.setAttribute('aria-label', 'Back to database workspace');
++  back.addEventListener('click', onClose);
++  sidebar.append(back);
++  const content = document.createElement('div');
++  content.className = 'backstage-content';
++  const buttons: HTMLButtonElement[] = [];
++  const heading = (parent: HTMLElement, title: string, body: string) => {
++    const h2 = document.createElement('h2');
++    h2.textContent = title;
++    h2.tabIndex = -1;
++    const p = document.createElement('p');
++    p.textContent = body;
++    parent.append(h2, p);
++    return h2;
++  };
++  const render = (page: typeof FILE_PAGES[number], focus = false) => {
++    content.replaceChildren();
++    buttons.forEach(button => {
++      if (button.textContent === page.title) button.setAttribute('aria-current', 'page');
++      else button.removeAttribute('aria-current');
++    });
++    const title = heading(content, page.title === 'Home' ? 'Welcome to Anne’s Base' : page.title, page.description);
++    const notice = document.createElement('p');
++    notice.className = 'preview-notice';
++    notice.textContent = 'Shell preview · Database commands are planned and not yet available.';
++    content.append(notice);
++    if (page.title === 'Home') {
++      const actions = document.createElement('div');
++      actions.className = 'file-actions';
++      actions.append(commandButton('file.new'), commandButton('file.open'));
++      const recent = document.createElement('section');
++      recent.className = 'file-empty';
++      heading(recent, 'Recent databases', 'No recent databases. Creating and opening databases will arrive with the storage engine.');
++      content.append(actions, recent);
++    } else if (page.title === 'Options') {
++      const customize = document.createElement('button');
++      customize.textContent = 'Customize Quick Access';
++      customize.addEventListener('click', onCustomize);
++      content.append(customize);
++      const explanation = document.createElement('p');
++      explanation.textContent = 'Pin commands from Command search. Use Classic menus below the ribbon to choose a historic layout. Pins and layout selection are saved in this browser when storage is available.';
++      content.append(explanation);
++    } else {
++      const actions = document.createElement('div');
++      actions.className = 'file-actions';
++      for (const id of page.commands) actions.append(commandButton(id));
++      content.append(actions);
++      if (page.title === 'Print') {
++        const preview = document.createElement('div');
++        preview.className = 'print-placeholder';
++        preview.textContent = 'Open a database to preview tables and reports.';
++        content.append(preview);
++      }
++    }
++    if (focus) title.focus();
++  };
++  for (const page of FILE_PAGES) {
++    const button = document.createElement('button');
++    button.textContent = page.title;
++    button.addEventListener('click', () => render(page, true));
++    buttons.push(button);
++    sidebar.append(button);
++  }
++  backstage.append(sidebar, content);
++  backstage.addEventListener('keydown', event => {
++    if (event.key === 'Escape') { event.preventDefault(); onClose(); }
++  });
++  render(FILE_PAGES[0]);
++  return {
++    element: backstage,
++    open: () => { backstage.hidden = false; render(FILE_PAGES[0]); back.focus(); },
++  };
++}
+--- a/src/style.css
++++ b/src/style.css
+@@ -1,51 +1,98 @@
+-:root { font-family: system-ui, sans-serif; color: #30242a; background: #f6f3f0; font-synthesis: none; }
++:root { font-family: 'Segoe UI', system-ui, sans-serif; color: #242424; background: #f3f3f3; font-synthesis: none; --accent: #a3324f; --accent-dark: #7d2139; }
+ * { box-sizing: border-box; }
++[hidden] { display: none !important; }
+ body { margin: 0; }
+-#app { max-width: 1440px; margin: auto; padding: 24px; }
+-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #d9cbd0; padding-bottom: 20px; }
+-header small { color: #a3324f; font-weight: 700; letter-spacing: .18em; }
+-h1 { font-family: Georgia, serif; font-size: 36px; margin: 6px 0 0; font-weight: 500; }
+-h2 { font-size: 20px; margin: 0 0 12px; }
+-h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #68515b; }
+-header > span, .badge { font-size: 12px; padding: 6px 10px; background: #eee1e5; border-radius: 20px; white-space: nowrap; }
+-.intro { padding: 36px 0 18px; max-width: 700px; }
+-.intro h2 { font: 32px Georgia, serif; }
+-p { line-height: 1.6; color: #68515b; }
++#app { min-height: 100vh; }
++header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 28px; color: white; background: var(--accent); }
++.brand { display: flex; align-items: baseline; gap: 20px; }
++header small { font-size: 10px; font-weight: 650; letter-spacing: .12em; opacity: .85; }
++h1 { font-size: 19px; margin: 0; font-weight: 600; }
++h2 { font-size: 20px; margin: 0 0 12px; font-weight: 600; }
++h3 { font-size: 11px; color: #616161; font-weight: 400; }
++header > span { font-size: 11px; padding: 4px 10px; border: 1px solid #ffffff60; border-radius: 12px; white-space: nowrap; }
++p { line-height: 1.6; color: #616161; }
+ button, select, input, summary { font: inherit; }
+-button, select { padding: 8px 12px; border: 1px solid #d9cbd0; background: white; color: #813044; border-radius: 6px; }
++button, select { padding: 8px 12px; border: 1px solid #d1d1d1; background: white; color: #333; border-radius: 5px; }
+ button:not(:disabled), summary, select { cursor: pointer; }
+-button:hover:not(:disabled) { background: #f2e6ea; }
+-button:disabled { color: #756b70; background: #f5f3f3; cursor: default; }
+-:focus-visible { outline: 3px solid #a3324f; outline-offset: 3px; }
+-.qat { padding: 18px; background: #fff; border: 1px solid #e5dce0; border-radius: 10px; margin: 0 0 24px; }
+-.qat > button { margin: 8px 8px 0 0; }
+-.pins { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 8px; }
+-.pin { display: flex; flex-shrink: 0; }
+-.pin button:first-child { border-radius: 6px 0 0 6px; }
+-.pin button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+-label { font-size: 14px; font-weight: 650; }
++button:hover:not(:disabled) { background: #f4e8ec; }
++button:disabled { color: #757575; background: #f7f7f7; cursor: default; }
++:focus-visible { outline: 3px solid #cb6482; outline-offset: 3px; }
++label { font-size: 13px; font-weight: 600; }
++.ribbon { margin: 0 12px; }
++.ribbon-tab-strip { display: flex; align-items: stretch; gap: 8px; }
++.ribbon-tabs { display: flex; overflow-x: auto; min-width: 0; }
++.ribbon-tabs button, .file-tab { border: 0; border-radius: 0; padding: 14px 15px 10px; font-size: 13px; background: transparent; white-space: nowrap; border-bottom: 3px solid transparent; }
++.ribbon-tabs button[aria-selected=true] { border-bottom-color: var(--accent); color: var(--accent-dark); font-weight: 650; }
++.file-tab { color: var(--accent-dark); font-weight: 650; }
++.ribbon-groups { display: flex; overflow: auto; gap: 12px; padding: 12px 16px 6px; background: white; border: 1px solid #e4e4e4; border-radius: 10px; box-shadow: 0 2px 5px #00000006; }
++.ribbon-groups > section { display: flex; flex-direction: column; justify-content: space-between; min-width: 150px; max-width: 280px; flex-shrink: 0; border-right: 1px solid #e8e8e8; padding-right: 12px; }
++.ribbon-groups > section:last-child { border: 0; }
++.ribbon-groups h3 { text-align: center; margin: 8px 0 0; }
++.ribbon-commands { display: grid; grid-template-rows: repeat(3, auto); grid-auto-flow: column; align-content: start; gap: 3px; }
++.ribbon-commands button { text-align: left; border: 0; display: block; max-width: 145px; margin: 0; padding: 5px 8px; font-size: 12px; line-height: 1.25; }
++.ribbon-commands button:disabled { background: white; }
++.classic-options { padding: 8px 28px; border-bottom: 1px solid #e5e5e5; }
++.classic-options > summary { width: fit-content; color: #616161; font-size: 12px; }
++.classic-options > label { display: block; margin-top: 12px; }
+ .classic-menus { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+ .classic-menus > details { position: relative; }
+ summary { padding: 8px; }
+-.menu-items { position: absolute; top: 100%; left: 0; background: white; border: 1px solid #d9cbd0; padding: 12px; box-shadow: 0 10px 24px #30242a18; z-index: 2; min-width: 240px; max-height: 55vh; overflow: auto; }
++.menu-items { position: absolute; top: 100%; left: 0; background: white; border: 1px solid #d1d1d1; padding: 12px; box-shadow: 0 10px 24px #00000018; z-index: 2; min-width: 240px; max-height: 55vh; overflow: auto; }
+ .menu-items button { display: block; width: 100%; text-align: left; margin: 3px 0; }
+ .menu-items details { padding-left: 8px; }
+-.ribbon { padding: 16px; border: 1px solid #e5dce0; border-radius: 10px; background: #fff; }
+-.ribbon-groups { display: flex; overflow: auto; gap: 16px; margin-top: 10px; }
+-.ribbon-groups > section { min-width: 150px; max-width: 240px; flex-shrink: 0; border-right: 1px solid #e5dce0; padding-right: 12px; }
+-.ribbon button { text-align: left; display: block; width: 100%; margin: 5px 0; font-size: 13px; }
+-main { padding-top: 32px; }
+-input[type=search] { display: block; width: 100%; margin: 12px 0; border: 1px solid #bd9ca8; border-radius: 8px; padding: 14px; color: #30242a; background: white; }
+-.results { list-style: none; padding: 0; border-top: 1px solid #ded3d7; }
+-.results li { display: flex; align-items: center; gap: 12px; padding: 16px 0; border-bottom: 1px solid #ded3d7; }
++.workspace-content { max-width: 1120px; margin: auto; padding: 28px; }
++.intro { max-width: 720px; margin-bottom: 24px; }
++.intro h2 { font-size: 27px; font-weight: 400; }
++.intro p { font-size: 14px; }
++.qat { padding: 16px; background: #fff; border: 1px solid #e4e4e4; border-radius: 8px; }
++.qat h2 { font-size: 14px; }
++.qat > button { margin: 8px 8px 0 0; font-size: 12px; }
++.pins { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 8px; }
++.pin { display: flex; flex-shrink: 0; }
++.pin button { font-size: 12px; }
++.pin button:first-child { border-radius: 5px 0 0 5px; }
++.pin button:last-child { border-radius: 0 5px 5px 0; border-left: 0; }
++main { padding-top: 28px; }
++input[type=search] { display: block; width: 100%; margin: 12px 0; border: 1px solid #b1b1b1; border-bottom: 2px solid var(--accent); border-radius: 5px; padding: 12px; color: #242424; background: white; }
++main > p { font-size: 12px; }
++.results { list-style: none; padding: 0; border-top: 1px solid #e0e0e0; }
++.results li { display: flex; align-items: center; gap: 12px; padding: 16px 0; border-bottom: 1px solid #e0e0e0; }
+ .results li > div { flex: 1; min-width: 0; }
+-.results strong { font-size: 14px; }
+-.results small { display: block; color: #68515b; margin-top: 6px; overflow-wrap: anywhere; }
+-.status { padding: 16px 0; border-top: 1px solid #d9cbd0; }
++.results strong { font-size: 14px; font-weight: 600; }
++.results small { display: block; color: #616161; margin-top: 6px; overflow-wrap: anywhere; font-size: 11px; }
++.results button { font-size: 12px; }
++.badge { font-size: 11px; padding: 4px 8px; background: #e8e8e8; border-radius: 4px; white-space: nowrap; }
++.status { padding: 8px 28px; margin: 0; border-top: 1px solid #ddd; background: white; font-size: 12px; }
++.backstage { display: grid; grid-template-columns: 180px minmax(0, 1fr); min-height: calc(100vh - 90px); background: #fafafa; }
++.backstage-nav { background: var(--accent); padding: 16px 0; display: flex; flex-direction: column; align-items: stretch; }
++.backstage-nav button { color: white; border: 0; border-radius: 0; background: transparent; text-align: left; font-size: 14px; padding: 12px 28px; }
++.backstage-nav button:hover { background: var(--accent-dark); }
++.backstage-nav button[aria-current=page] { background: var(--accent-dark); box-shadow: inset 4px 0 white; font-weight: 650; }
++.backstage-nav .backstage-back { font-size: 16px; margin-bottom: 22px; }
++.backstage-nav button:focus-visible { outline-color: white; outline-offset: -4px; }
++.backstage-content { padding: 44px clamp(24px, 5vw, 80px); max-width: 1100px; }
++.backstage-content > h2 { font-size: 32px; font-weight: 400; }
++.backstage-content > p { max-width: 640px; }
++.preview-notice { font-size: 12px; padding: 12px 16px; border-left: 3px solid var(--accent); background: #f3e8ec; margin: 24px 0; }
++.file-actions { display: flex; flex-wrap: wrap; gap: 16px; margin: 28px 0; }
++.file-actions button { width: 205px; min-height: 104px; padding: 22px; text-align: left; font-size: 15px; border: 1px solid #ddd; background: white; }
++.file-actions button:disabled { border-style: dashed; }
++.file-empty { padding: 28px 0; margin-top: 32px; border-top: 1px solid #ddd; }
++.file-empty h2 { font-size: 18px; }
++.print-placeholder { display: grid; place-items: center; padding: 40px; width: min(100%, 420px); min-height: 320px; background: white; border: 1px solid #ddd; box-shadow: 0 2px 12px #00000008; color: #616161; text-align: center; }
+ @media (max-width: 600px) {
+-  #app { padding: 16px; }
+-  h1 { font-size: 30px; }
++  header { padding: 14px 16px; }
++  .brand { flex-direction: column; gap: 4px; }
++  .ribbon { margin: 0 6px; }
++  .workspace-content { padding: 24px 16px; }
++  .classic-options { padding: 8px 16px; }
+   .results li { flex-wrap: wrap; gap: 8px; }
+   .results li > div { flex-basis: calc(100% - 100px); }
+   .menu-items { position: fixed; left: 16px; right: 16px; top: 20vh; }
++  .backstage { grid-template-columns: 106px minmax(0, 1fr); }
++  .backstage-nav button { padding: 12px 16px; }
++  .backstage-content { padding: 28px 18px; }
++  .backstage-content > h2 { font-size: 25px; }
++  .file-actions button { width: 100%; min-height: 84px; }
++  .backstage-content p { font-size: 13px; }
+ }
+--- a/tests/shell.test.ts
++++ b/tests/shell.test.ts
+@@ -50,17 +50,54 @@
+ 
+   it('renders all planned menu layouts and ribbon tabs without missing IDs', () => {
+     const root = mount();
+-    const [menus, tabs] = [...root.querySelectorAll('select')];
++    const menus = root.querySelector('select')!;
+     for (const option of menus.options) {
+       menus.value = option.value;
+       menus.dispatchEvent(new Event('change'));
+       expect(root.querySelectorAll('.classic-menus > details').length).toBeGreaterThan(0);
+     }
+-    for (const option of tabs.options) {
+-      tabs.value = option.value;
+-      tabs.dispatchEvent(new Event('change'));
++    for (const tab of root.querySelectorAll<HTMLButtonElement>('[role=tab]')) {
++      tab.click();
++      expect(tab.getAttribute('aria-selected')).toBe('true');
+       expect(root.querySelectorAll('.ribbon-groups section').length).toBeGreaterThan(0);
+     }
++  });
++
++  it('opens File backstage, switches pages and returns with Escape', () => {
++    const root = mount();
++    const file = root.querySelector<HTMLButtonElement>('.file-tab')!;
++    file.click();
++    const backstage = root.querySelector<HTMLElement>('.backstage')!;
++    expect(backstage.hidden).toBe(false);
++    expect(root.querySelector<HTMLElement>('.workspace')!.hidden).toBe(true);
++    expect(backstage.textContent).toContain('Welcome to Anne’s Base');
++    expect(backstage.textContent).toContain('No recent databases');
++    for (const button of backstage.querySelectorAll<HTMLButtonElement>('.backstage-nav button:not(.backstage-back)')) {
++      button.click();
++      expect(button.getAttribute('aria-current')).toBe('page');
++      for (const action of backstage.querySelectorAll<HTMLButtonElement>('.file-actions button')) expect(action.disabled).toBe(true);
++    }
++    backstage.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
++    expect(backstage.hidden).toBe(true);
++    expect(root.querySelector<HTMLElement>('.workspace')!.hidden).toBe(false);
++    expect(document.activeElement).toBe(file);
++    expect(file.getAttribute('aria-expanded')).toBe('false');
++  });
++
++  it('supports ribbon arrow keys and returning from File options to command search', () => {
++    const root = mount();
++    const home = root.querySelector<HTMLButtonElement>('[role=tab][aria-selected=true]')!;
++    expect(home.textContent).toBe('Home');
++    home.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
++    expect(document.activeElement?.textContent).toBe('Create');
++    expect(document.activeElement?.getAttribute('aria-selected')).toBe('true');
++    expect(root.querySelector('[role=tabpanel]')?.getAttribute('aria-labelledby')).toBe(document.activeElement?.id);
++    findButton(root, 'File').click();
++    findButton(root, 'Options').click();
++    findButton(root, 'Customize Quick Access').click();
++    expect(root.querySelector<HTMLElement>('.backstage')!.hidden).toBe(true);
++    expect(document.activeElement).toBe(root.querySelector('input[type=search]'));
++    expect(root.querySelector<HTMLDetailsElement>('.classic-options')!.open).toBe(false);
+   });
+ 
+   it('keeps controls working and explains when preferences cannot be saved', () => {
+--- a/README.md
++++ b/README.md
+@@ -16,7 +16,9 @@
+ npm run dev
+ ```
+ 
+-Open `http://localhost:5173` in your browser. The dev server listens on all interfaces for device testing. Command search covers all 693 planned commands; it searches labels, ids, groups and notes. Pin or unpin commands from search results, or use **Add All Choices** for the standard Quick Access set. The default classic menu layout is Access 2003 style; its historical fidelity still needs verification. Pinning and menu layout are saved in browser storage when available.
++Open `http://localhost:5173` in your browser. The dev server listens on all interfaces for device testing. The modern ribbon opens a Word-style **File** screen with Home, New, Open, Info, Save, Print, Share, Export, Close and Options pages. Use **Back** or Escape to return to the workspace. Database actions are still disabled in this shell preview.
++
++Command search covers all 693 planned commands; it searches labels, ids, groups and notes. Pin or unpin commands from search results, or use **Add All Choices** for the standard Quick Access set. Expand **Classic menus** below the ribbon to choose a historic layout; the default is Access 2003 style and its historical fidelity still needs verification. Pinning and menu layout are saved in browser storage when available.
+ 
+ ```bash
+ npm test             # registry, catalog, preferences and shell interactions
+--- a/docs/ARCHITECTURE.md
++++ b/docs/ARCHITECTURE.md
+@@ -19,8 +19,9 @@
+ handlers and duplicate handlers are rejected. Execution distinguishes unknown,
+ unavailable and executed commands; handler failures propagate to the caller.
+ 
+-`src/ui/shell.ts` renders classic menus, nested menus, ribbon groups, search and
+-the Quick Access Bar from this catalog. The Home ribbon uses the catalog's
++`src/ui/shell.ts` renders a modern Office-style ribbon, search and the Quick
++Access Bar from this catalog. Historic menus and their layout selector are
++available in the collapsed Classic menus section. The Home ribbon uses the catalog's
+ special `homeTab` arrangement. Contextual tabs can be inspected in this preview;
+ they are not yet tied to an open object. Search matches all words against labels,
+ ids, tabs, groups and notes, and displays the first 60 matches. Text is inserted
+@@ -30,7 +31,16 @@
+ unpin, clear-pins, tab selection and menu selection are local shell controls.
+ Database commands are disabled and labeled as planned. The classic menus use
+ native disclosure elements; full desktop-style arrow-key navigation and automatic
+-menu dismissal are still future work.
++classic-menu dismissal are still future work. Modern ribbon tabs support Left,
++Right, Home and End keys with selected-tab state and associated panel labels.
++
++`src/ui/backstage.ts` renders the Word-style File screen with a left navigation
++rail and Home, New, Open, Info, Save, Print, Share, Export, Close and Options
++pages. Its database actions use the same availability checks as the rest of the
++shell. The workspace is hidden while File is open; Back or Escape restores it
++and returns focus to File. Options can return to Command search to customize
++Quick Access. The Home page shows an honest empty recent list, and Print shows
++a placeholder rather than a fabricated preview.
+ 
+ ## Preferences
+ 
+--- a/docs/ROADMAP.md
++++ b/docs/ROADMAP.md
+@@ -20,7 +20,8 @@
+   - [ ] Capacitor, Electron, PWA/offline support and multiplatform release workflows.
+ - Suite shell: command registry, ribbon, Quick Access Bar with **Add All Choices** (`view.qatAddAll`), Customize Ribbon and Keyboard, command search, Backstage, preferences, settings import/export, portable mode.
+   - [x] Registry for every planned command, search, ribbon groups, Quick Access pin/unpin/clear, standard and extra choices with Save/Print first, and browser-persisted pins/menu selection. Execution requires a real handler; unimplemented commands stay unavailable.
+-  - [ ] Custom ribbon/key bindings, Backstage, broader preferences, import/export and portable mode; integrate suite shell conventions as features arrive.
++  - [x] Modern Office-style ribbon tabs with keyboard navigation and Word-style File/Backstage navigation; database actions stay unavailable until implemented.
++  - [ ] Custom ribbon/key bindings, working database actions in Backstage, broader preferences, import/export and portable mode; integrate suite shell conventions as features arrive.
+ - **Classic menu bar** with the Access 2003 layout (default) and View ▸ Menus.
+   - [x] Render all 15 planned layouts and nested menus with a layout selector; default to Access 2003 style.
+   - [ ] Verify historical arrangements (M0), implement the View ▸ Menus command and complete menu keyboard navigation.

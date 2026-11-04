@@ -1,6 +1,6 @@
 # Contributing to Anne's Base
 
-Thank you for your interest. Anne's Base is in the **planning stage — there is no code yet**, so the most useful contributions right now are:
+Thank you for your interest. Anne's Base has an **early browser shell and read-only SQLite viewer; editing and the change journal are not implemented**. Useful contributions include shell improvements, engine work, tests and:
 
 - **Feedback on the plan:** missing commands, wrong command placement, menu arrangements that differ from the programs they model, ideas from other database programs, and corrections to [docs/INNOVATIONS.md](docs/INNOVATIONS.md), [docs/MENUS-PLAN.md](docs/MENUS-PLAN.md), [docs/FORMATS-PLAN.md](docs/FORMATS-PLAN.md) or [docs/QAT.md](docs/QAT.md). Edit [docs/commands-plan.src.txt](docs/commands-plan.src.txt) or [docs/menus-plan.src.txt](docs/menus-plan.src.txt) and run `python3 scripts/gen-plan.py`; it fails on unknown ids, duplicate ids and shortcut conflicts. Open an issue with the *Feature request* template.
 - **Test files:** databases you made yourself (or that are openly licensed) from Access (any version), dBASE, FoxPro, Clipper, Paradox, FileMaker exports, Approach, Works, Q&A, R:BASE, DataEase, Alpha Four, LibreOffice Base and the rest, with made-up data; damaged files for the recovery engine. Do not attach files you do not have the right to share or that contain real people's information.
@@ -15,9 +15,9 @@ Thank you for your interest. Anne's Base is in the **planning stage — there is
 - **American English** in the interface, code comments and documentation.
 - **Licenses.** Contributions are accepted under the MIT License. New dependencies must use a permissive license (MIT, BSD, Apache 2.0, ISC, public domain, SIL OFL for fonts).
 
-## When code exists
+## Development checks
 
-The workflow will match the sister apps:
+Use Node.js 24 LTS. The current web scaffold supports:
 
 ```bash
 npm ci

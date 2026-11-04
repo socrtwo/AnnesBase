@@ -1,6 +1,6 @@
 # Architecture plan
 
-> **This is a plan, not a description of existing code.** Anne's Base has no code yet. The design mirrors what the sister apps already ship (Anne's Pen, Anne's Grid, Anne's Stage, Anne's Folio), so that the suite shares one shell and one set of conventions. Details will change as the code is written; this file will then be replaced by `docs/ARCHITECTURE.md`.
+> **This is a plan, not a description of existing code.** Anne's Base has an early SQLite viewer; editing and most database features remain planned. The design mirrors what the sister apps already ship (Anne's Pen, Anne's Grid, Anne's Stage, Anne's Folio), so that the suite shares one shell and one set of conventions. See [ARCHITECTURE.md](ARCHITECTURE.md) for what exists today; this plan records the remaining intended architecture.
 
 ## Summary
 

@@ -1,6 +1,6 @@
 # Clean-room, trademark and licensing notes
 
-This file records how Anne's Base will provide the complete command set of Microsoft Access and the other database programs while avoiding other vendors' trademarks and copyrights. It summarizes the practice the other Anne's Office apps follow; it is not legal advice. Anne's Base has no code yet, so this file states the rules the code will be written under.
+This file records how Anne's Base will provide the complete command set of Microsoft Access and the other database programs while avoiding other vendors' trademarks and copyrights. It summarizes the practice the other Anne's Office apps follow; it is not legal advice. Anne's Base has an early command shell; this file states the rules for existing and future code.
 
 ## What is reproduced, and why it is safe
 

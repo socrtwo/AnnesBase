@@ -1,6 +1,6 @@
 # AI plan
 
-> **Plan.** Anne's Base has no code yet. This document fixes what the **AI** tab and the **AI** menu (present in every classic menu layout) will do, which services they use, and the rules for privacy, accuracy and cost. Command ids are in [COMMANDS-PLAN.md](COMMANDS-PLAN.md#ai).
+> **Plan.** Anne's Base has an early SQLite viewer; editing and most database features remain planned. This document fixes what the **AI** tab and the **AI** menu (present in every classic menu layout) will do, which services they use, and the rules for privacy, accuracy and cost. Command ids are in [COMMANDS-PLAN.md](COMMANDS-PLAN.md#ai).
 
 The AI tab is optional. Nothing is sent anywhere until you run an AI command, and every AI command is an ordinary command: it can go on the Quick Access Bar, on a custom tab, in any menu layout, on a shortcut, or in a macro.
 

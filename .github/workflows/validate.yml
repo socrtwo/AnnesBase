@@ -1,0 +1,43 @@
+name: Validate plans and corpus
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.10', '3.13']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Validate command and menu plans
+        run: python scripts/gen-plan.py --check
+      - name: Test synthetic recovery corpus
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Validate application metadata
+        run: python -m json.tool AnnesBase.meta.json
+      - name: Check Termux setup syntax
+        if: runner.os == 'Linux'
+        run: bash -n scripts/termux-setup.sh
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build

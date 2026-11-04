@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # Anne's Base: create the GitHub repository, set its description, homepage and topics from
-# QuillBase.meta.json, commit this folder if it has no commits yet, and push.
+# AnnesBase.meta.json, commit this folder if it has no commits yet, and push.
 #
 # Run in Termux (works in any bash with git, GitHub CLI and jq):
 #   pkg install -y git gh jq
@@ -9,23 +9,23 @@
 #   bash scripts/termux-setup.sh             # public repository, like the sister apps
 #   bash scripts/termux-setup.sh --private   # private instead
 #
-# Environment overrides: OWNER (default socrtwo), REPO (default QuillBase).
+# Environment overrides: OWNER (default socrtwo), REPO (default AnnesBase).
 # Safe to re-run: each step checks whether it was already done.
 set -euo pipefail
 
 OWNER="${OWNER:-socrtwo}"
-REPO="${REPO:-QuillBase}"
+REPO="${REPO:-AnnesBase}"
 VISIBILITY="--public"
 [[ "${1:-}" == "--private" ]] && VISIBILITY="--private"
 
 cd "$(dirname "$0")/.."
-META="QuillBase.meta.json"
+META="AnnesBase.meta.json"
 
 for tool in git gh jq; do
   command -v "$tool" >/dev/null 2>&1 || { echo "✗ $tool is missing. In Termux: pkg install -y git gh jq"; exit 1; }
 done
 gh auth status >/dev/null 2>&1 || { echo "✗ Not logged in to GitHub. Run: gh auth login && gh auth setup-git"; exit 1; }
-[[ -f "$META" ]] || { echo "✗ $META not found; run this from the QuillBase folder"; exit 1; }
+[[ -f "$META" ]] || { echo "✗ $META not found; run this from the AnnesBase folder"; exit 1; }
 
 DESC="$(jq -r '.description' "$META")"
 HOMEPAGE="$(jq -r '.homepage // ""' "$META")"

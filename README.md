@@ -4,7 +4,7 @@
 
 An original, open-source desktop database for Android, iOS, Windows, macOS, Linux, ChromeOS and the web, in the tradition of Microsoft Access: tables, queries, forms, reports, macros and code in one file, for people who are not database administrators. Its goal is the same as the rest of the Anne's Office suite: **no missing commands**. Anne's Base gathers the commands of Access (including features Access has retired), of the classic database programs (dBASE, FoxPro and Visual FoxPro, Clipper, Paradox, FileMaker, Lotus Approach, Works, Q&A, R:BASE, DataEase, Alpha Four, HyperCard), of the open-source and server tools (LibreOffice Base, Kexi, SQLite, PostgreSQL, MySQL, SQL Server Management Studio, DBeaver, DuckDB) and of the web databases (Airtable, Notion, Quickbase, Power Apps), adds ideas of its own, and has an **AI** tab and menu for asking questions of your data, designing databases, writing queries and code, cleaning data and diagnosing damage. Every feature is a command, and every command can be put on the Quick Access Bar, on your own tab, in any classic menu layout, on a keyboard shortcut, in a macro, and found with command search. When a database is damaged, Anne's Base shows what it can recover instead of refusing to open it.
 
-> **Status: early M1 database editor.** Native `.qbase` files support table creation, adding/editing/deleting records, a persistent transaction journal and sequential undo. Other SQLite files open read-only. The browser app includes a sample database, command search, Word-style File menus, ribbon groups, classic menus and Quick Access pinning. Queries, snapshots, recovery and AI are not implemented. No platform releases have been published. The documents below describe the intended application; see [CONTRIBUTING.md](CONTRIBUTING.md).
+> **Status: early M1 database editor.** Native `.qbase` files support table creation, adding/editing/deleting records, a persistent transaction journal, sequential undo and browser autosave/restore. Other SQLite files open read-only. The browser app includes a sample database, command search, Word-style File menus, ribbon groups, classic menus and Quick Access pinning. Queries, versioned snapshots, damaged-file recovery and AI are not implemented. No platform releases have been published. The documents below describe the intended application; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Run the preview
 
@@ -20,7 +20,11 @@ Open `http://localhost:5173` in your browser. Select **Try sample database**, th
 
 **Open SQLite file** reads a `.sqlite`, `.db` or `.qbase` from your device. **Download a copy** downloads a new file including the journal, never overwriting your source. Undo remains available after reopening the downloaded native file. File ▸ New/Open/Save/Close uses the same engine. Datasheet pages show up to 100 rows; use Previous/Next for more.
 
-This preview loads files into memory, with a **32 MiB input limit**. Download a copy to keep changes; closing/replacing the database or leaving the page warns about pending changes. A started download is not confirmation that the file was saved. Ordinary SQLite, old `0-preview` files, and unsupported native schemas remain read-only. New native files use experimental catalog version `1-preview`; compatibility with future versions is not promised. Access files, encrypted databases, recovery, redo and changes to an existing table's schema are not supported.
+Editable native databases autosave committed changes and their journal as **Browser recovery copies** using IndexedDB. Wait for **Saved in this browser** before leaving, then restore a copy after reopening the app. Each database has its own copy; closing or creating another database does not delete it. **Recent Databases** in File opens this recovery list. You can remove inactive copies explicitly. Revision checks prevent a stale tab from overwriting or deleting a newer copy; a conflict leaves the local edits available to download or discard before restoring the latest copy.
+
+Browser copies belong to this browser profile and site address (including the port). They do not update original files or sync between devices. They contain the latest committed database state, not unfinished form drafts or a versioned backup history. Browser storage can be unavailable, full, cleared or evicted, so keep downloaded backups. Failed autosaves remain visibly failed with a retry button, and pending changes/drafts retain their leave-page warning. A started download is not confirmation that the file was saved.
+
+This preview loads files into memory, with a **32 MiB input/recovery-copy limit**. Ordinary SQLite, old `0-preview` files, explicit read-only opens and unsupported native schemas remain read-only and are not automatically copied to browser storage. New native files use experimental catalog version `1-preview`; compatibility with future versions is not promised. Access files, encrypted databases, damaged-file recovery, redo and changes to an existing table's schema are not supported.
 
 The dev server listens on all interfaces for device testing. The modern ribbon opens a Word-style **File** screen with Home, New, Open, Info, Save, Print, Share, Export, Close and Options pages. Use **Back** or Escape to return to the workspace. Unimplemented actions remain disabled.
 
@@ -33,7 +37,7 @@ python3 scripts/gen-plan.py --check
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code that exists today. Capacitor, Electron, PWA/offline support, automatic persistent storage, snapshots and broader journal features remain upcoming M1 work.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code that exists today. Capacitor, Electron, PWA/offline support, worker/OPFS storage, versioned snapshots and broader journal features remain upcoming M1 work.
 
 ## The plan in brief
 

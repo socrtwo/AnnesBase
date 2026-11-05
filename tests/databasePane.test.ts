@@ -427,6 +427,7 @@ describe('snapshot workspace', () => {
     registry.execute('recover.autoSnapshots');
     button('Create table').click(); root.querySelector<HTMLFormElement>('.database-editor form')!.requestSubmit();
     await vi.waitFor(() => expect(root.querySelector('.browser-snapshots [role=alert]')?.textContent).toContain('Quota exceeded'));
+    expect(root.querySelector('.browser-snapshots [role=status]')?.textContent).toBe('Snapshot was not saved. Existing versions were kept.');
     expect(root.textContent).toContain('Table1'); expect(registry.isAvailable('edit.undo')).toBe(true);
   });
 });

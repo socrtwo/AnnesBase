@@ -24,12 +24,13 @@ export function mountSnapshots(
   const automatic = node('input'); automatic.type = 'checkbox'; automatic.checked = settings.enabled;
   const automaticLabel = node('label', 'Automatic snapshots before changes '); automaticLabel.append(automatic);
   const keep = node('input'); keep.type = 'number'; keep.min = '1'; keep.max = '20'; keep.value = String(settings.keep); keep.setAttribute('aria-label', 'Automatic snapshots to keep per database');
+  const keepLabel = node('label', 'Automatic versions to keep per database '); keepLabel.append(keep);
   const scope = node('input'); scope.type = 'checkbox'; scope.checked = true;
   const scopeLabel = node('label', 'Current database only '); scopeLabel.append(scope);
   const refresh = node('button', 'Refresh snapshots');
   const list = node('ul'); list.className = 'recovery-list';
   const help = node('p', 'Manual snapshots are pinned until removed. Automatic snapshots keep 1–20 versions per database; rapid pending captures may be combined. The journal keeps each committed change. Restore opens a separate copy. Browser storage can be cleared or evicted: download backups.');
-  host.append(heading, help, label, create, automaticLabel, keep, scopeLabel, refresh, status, error, list);
+  host.append(heading, help, label, create, automaticLabel, keepLabel, scopeLabel, refresh, status, error, list);
   const fail = (reason: unknown) => { if (!disposed) { host.hidden = false; error.textContent = `Snapshot operation failed: ${reason instanceof Error ? reason.message : String(reason)}`; } };
   function controls() {
     const current = context(); create.disabled = working || current.busy || current.draftChanged || !current.session?.editable;
@@ -59,7 +60,7 @@ export function mountSnapshots(
       if (disposed || !result) return;
       error.textContent = ''; status.textContent = `${result.label} saved in this browser.`;
       await refreshList();
-    } catch (reason) { fail(reason); }
+    } catch (reason) { fail(reason); if (!disposed) status.textContent = 'Snapshot was not saved. Existing versions were kept.'; }
     finally { pending--; if (!disposed && pending) status.textContent = 'Saving snapshot… Keep this page open until it finishes.'; }
   }
   create.addEventListener('click', () => {

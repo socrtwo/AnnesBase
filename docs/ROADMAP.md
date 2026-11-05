@@ -24,7 +24,8 @@
   - [ ] Custom ribbon/key bindings, working database actions in Backstage, broader preferences, import/export and portable mode; integrate suite shell conventions as features arrive.
 - **Classic menu bar** with the Access 2003 layout (default) and View ▸ Menus.
   - [x] Render all 15 planned layouts and nested menus with a layout selector; default to Access 2003 style.
-  - [ ] Verify historical arrangements (M0), implement the View ▸ Menus command and complete menu keyboard navigation.
+  - [x] Menus/Menu Layout commands reveal the chooser; all 15 layouts support arrow/Home/End navigation, nested submenus, type-ahead, native Enter/Space activation, Escape/Tab and outside-focus/pointer dismissal. Disabled actions are skipped and command-directed focus is preserved.
+  - [ ] Verify historical arrangements and original shortcut fidelity (M0); custom menu editing remains future work.
 - Storage engine: SQLite WASM, `.qbase` catalog, **journal**, snapshots, encryption.
   - [x] Locally bundled SQLite WASM, experimental `0-preview` native metadata, blank/sample creation, checked read-only file opening and copy download; 32 MiB in-memory input limit.
   - [x] Experimental `1-preview` managed-table catalog and transactional before/after journal; sequential undo survives download/reopen. Ordinary/old/unsupported database schemas remain read-only.

@@ -3,7 +3,9 @@ import { addAllQatChoices, defaultPreferences, loadPreferences, savePreferences,
 import { createBackstage } from './backstage';
 import { mountDatabasePane } from './databasePane';
 
-interface MenuItem { submenu: string; items: (string | MenuItem)[] }
+import { mountClassicMenus } from './classicMenus';
+
+const mountedShells = new WeakMap<HTMLElement, () => void>();
 
 function element<K extends keyof HTMLElementTagNameMap>(tag: K, text?: string): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
@@ -11,7 +13,8 @@ function element<K extends keyof HTMLElementTagNameMap>(tag: K, text?: string): 
   return node;
 }
 
-export function mountShell(root: HTMLElement, storage?: PreferenceStorage): void {
+export function mountShell(root: HTMLElement, storage?: PreferenceStorage): { dispose: () => void } {
+  mountedShells.get(root)?.();
   const registry = createRegistry();
   // Access to localStorage itself can throw in private/restricted browser contexts.
   try { storage ??= window.localStorage; } catch { /* Session-only preferences below. */ }
@@ -88,6 +91,7 @@ export function mountShell(root: HTMLElement, storage?: PreferenceStorage): void
   menus.setAttribute('aria-label', 'Classic menus');
   const layoutLabel = element('label', 'Menu layout ');
   const layout = element('select');
+  layout.setAttribute('aria-label', 'Menu layout');
   for (const [id, value] of Object.entries(catalog.menuLayouts)) {
     const option = element('option', value.name);
     option.value = id;
@@ -95,29 +99,10 @@ export function mountShell(root: HTMLElement, storage?: PreferenceStorage): void
   }
   layout.value = prefs.menuLayout;
   layoutLabel.append(layout);
-  function renderMenuItems(parent: HTMLElement, items: (string | MenuItem)[]) {
-    for (const item of items) {
-      if (typeof item === 'string') parent.append(item === '---' ? element('hr') : commandButton(item));
-      else {
-        const nested = element('details');
-        nested.append(element('summary', item.submenu));
-        renderMenuItems(nested, item.items);
-        parent.append(nested);
-      }
-    }
-  }
+  const classicMenus = mountClassicMenus(menus, commandButton);
   const renderMenus = () => {
-    menus.replaceChildren();
     const selected = catalog.menuLayouts[prefs.menuLayout as keyof typeof catalog.menuLayouts];
-    for (const menu of selected.menus) {
-      const dropdown = element('details');
-      dropdown.append(element('summary', menu.name));
-      const content = element('div');
-      content.className = 'menu-items';
-      renderMenuItems(content, menu.items);
-      dropdown.append(content);
-      menus.append(dropdown);
-    }
+    classicMenus.render(selected.menus);
   };
   layout.addEventListener('change', () => { prefs.menuLayout = layout.value; renderMenus(); persist(); });
 
@@ -143,6 +128,7 @@ export function mountShell(root: HTMLElement, storage?: PreferenceStorage): void
   });
   backstage.element.id = 'file-backstage';
   fileButton.addEventListener('click', () => {
+    classicMenus.close();
     workspace.hidden = true;
     fileButton.setAttribute('aria-expanded', 'true');
     backstage.open();
@@ -239,14 +225,23 @@ export function mountShell(root: HTMLElement, storage?: PreferenceStorage): void
   main.append(searchLabel, search, count, results);
   const classic = element('details');
   classic.className = 'classic-options';
-  classic.append(element('summary', 'Classic menus'), layoutLabel, menus);
+  const menuHelp = element('p', 'Use arrow keys to move through menus, Right to open submenus, Escape to go back, and type a command’s name to find it. Tab leaves the menu.');
+  menuHelp.className = 'menu-help';
+  classic.append(element('summary', 'Classic menus'), layoutLabel, menuHelp, menus);
+  classic.addEventListener('toggle', () => { if (!classic.open) classicMenus.close(); });
+  const chooseMenus = () => {
+    backstage.element.hidden = true; workspace.hidden = false; fileButton.setAttribute('aria-expanded', 'false');
+    classic.open = true; classicMenus.close(); layout.focus(); layout.scrollIntoView?.({ block: 'center' });
+  };
+  registry.bind('view.menus', chooseMenus);
+  registry.bind('view.menuLayout', chooseMenus);
   const content = element('div');
   content.className = 'workspace-content';
   const databaseContainer = element('div');
   content.append(intro, databaseContainer, qat, main);
   workspace.append(ribbon, classic, content);
   root.append(header, workspace, backstage.element, status);
-  mountDatabasePane(databaseContainer, registry, (name, busy) => {
+  const databasePane = mountDatabasePane(databaseContainer, registry, (name, busy) => {
     status.textContent = busy ? 'Loading SQLite…' : name ? `${name} · Database preview` : 'No database is open.';
     for (const button of root.querySelectorAll<HTMLButtonElement>('button[data-command]')) {
       const id = button.dataset.command!;
@@ -261,4 +256,11 @@ export function mountShell(root: HTMLElement, storage?: PreferenceStorage): void
     databaseContainer.scrollIntoView?.({ block: 'start' });
   });
   renderPins(); renderMenus(); renderRibbon(); renderResults();
+  let disposed = false;
+  const dispose = () => {
+    if (disposed) return; disposed = true;
+    classicMenus.dispose(); databasePane.dispose(); mountedShells.delete(root);
+  };
+  mountedShells.set(root, dispose);
+  return { dispose };
 }

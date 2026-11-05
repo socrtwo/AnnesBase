@@ -4,12 +4,13 @@ import { catalog } from '../src/commands/registry';
 import { PREFS_KEY, QAT_EXTRAS, QAT_STANDARD } from '../src/prefs';
 import { mountShell } from '../src/ui/shell';
 
-afterEach(() => { document.body.replaceChildren(); window.localStorage.clear(); });
+const cleanups: (() => void)[] = [];
+afterEach(() => { cleanups.splice(0).forEach(dispose => dispose()); document.body.replaceChildren(); window.localStorage.clear(); });
 
 function mount() {
   const root = document.createElement('div');
   document.body.append(root);
-  mountShell(root);
+  cleanups.push(mountShell(root).dispose);
   return root;
 }
 function findButton(root: HTMLElement, text: string) {
@@ -38,7 +39,7 @@ describe('application shell', () => {
     findButton(root, 'Pin').click();
     const saved = JSON.parse(window.localStorage.getItem(PREFS_KEY)!);
     expect(saved.qat).toContain('file.new');
-    mountShell(root);
+    cleanups.push(mountShell(root).dispose);
     expect(root.querySelector('.pins')?.textContent).toContain('New Blank Database');
     findButton(root, catalog.commands['view.qatAddAll'].label).click();
     expect(root.querySelectorAll('.pin')).toHaveLength(new Set([...QAT_STANDARD, ...QAT_EXTRAS]).size);
@@ -113,4 +114,21 @@ describe('application shell', () => {
     expect(root.querySelector('.pins')?.textContent).toContain('New Blank Database');
     expect(root.querySelector('.status')?.textContent).toContain('browser storage is unavailable');
   });
+});
+
+
+it('opens the menu chooser from command search and retains the selected layout on remount', () => {
+  const root = mount(); const search = root.querySelector<HTMLInputElement>('#command-search')!;
+  for (const id of ['view.menus', 'view.menuLayout']) {
+    root.querySelector<HTMLDetailsElement>('.classic-options')!.open = false;
+    search.value = id; search.dispatchEvent(new Event('input'));
+    root.querySelector<HTMLButtonElement>(`.results button[data-command="${id}"]`)!.click();
+    expect(root.querySelector<HTMLDetailsElement>('.classic-options')!.open).toBe(true);
+    expect(document.activeElement).toBe(root.querySelector('.classic-options select'));
+  }
+  const layout = root.querySelector<HTMLSelectElement>('.classic-options select')!;
+  layout.value = 'complete'; layout.dispatchEvent(new Event('change'));
+  expect(JSON.parse(window.localStorage.getItem(PREFS_KEY)!).menuLayout).toBe('complete');
+  cleanups.push(mountShell(root).dispose);
+  expect(root.querySelector<HTMLSelectElement>('.classic-options select')!.value).toBe('complete');
 });

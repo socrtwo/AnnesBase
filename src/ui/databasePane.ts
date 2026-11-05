@@ -7,15 +7,22 @@ import { DocumentAutosave } from '../storage/autosave';
 import { tableControls } from './tableControls';
 import type { TableView } from '../engine/tableView';
 import { showRecordHistory } from './recordHistory';
+import { IndexedDbSnapshotStore, type SnapshotStore } from '../storage/snapshots';
+import type { PreferenceStorage } from '../prefs';
+import { mountSnapshots } from './snapshots';
 
 export interface DatabaseDependencies {
   load: () => Promise<SqlJsStatic>;
   download: (bytes: Uint8Array, name: string) => void;
   confirmDiscard?: () => boolean;
   recovery?: RecoveryStore;
+  snapshots?: SnapshotStore;
+  snapshotPreferences?: PreferenceStorage;
 }
 const defaultDependencies: DatabaseDependencies = {
   recovery: new IndexedDbRecoveryStore(),
+  snapshots: new IndexedDbSnapshotStore(),
+  snapshotPreferences: { getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value) },
   load: async () => (await import('../engine/browser')).loadSqlite(),
   download: (bytes, name) => {
     const url = URL.createObjectURL(new Blob([Uint8Array.from(bytes).buffer], { type: 'application/vnd.sqlite3' }));
@@ -49,6 +56,9 @@ export function mountDatabasePane(
   let draftChanged = false;
   let openAsReadOnly = false;
   let autosave: DocumentAutosave | undefined;
+  let snapshotDocumentId: string | undefined;
+  let snapshots: ReturnType<typeof mountSnapshots> | undefined;
+  const snapshotPanel = node('section'); snapshotPanel.hidden = true;
   let recoveryEntries: RecoveryMetadata[] = [];
   let recoveryError = '';
   let listing = 0;
@@ -104,14 +114,17 @@ export function mountDatabasePane(
   const confirmDiscard = () => (dependencies.confirmDiscard ?? (() => window.confirm('There are unsaved changes. Discard those changes?')))();
   const discard = () => !needsProtection() || confirmDiscard();
   const beforeUnload = (event: BeforeUnloadEvent) => {
-    if (needsProtection()) { event.preventDefault(); event.returnValue = ''; }
+    if (needsProtection() || snapshots?.isSaving) { event.preventDefault(); event.returnValue = ''; }
   };
   window.addEventListener('beforeunload', beforeUnload);
-  editing.addEventListener('input', () => { draftChanged = true; renderRecovery(); });
-  const cancelEditing = () => { editing.replaceChildren(); editing.hidden = true; draftChanged = false; renderRecovery(); };
+  editing.addEventListener('input', () => { draftChanged = true; renderRecovery(); snapshots?.contextChanged(); });
+  const cancelEditing = () => { editing.replaceChildren(); editing.hidden = true; draftChanged = false; renderRecovery(); snapshots?.contextChanged(); };
   function apply(change: () => void) {
     if (busy) throw new Error('Wait for the database to finish loading.');
-    change(); cancelEditing(); closeHistory(); selectedRecord = undefined;
+    const snapshot = snapshots?.beforeChange();
+    change();
+    if (snapshot) snapshots?.saveAutomatic(snapshot);
+    cancelEditing(); closeHistory(); selectedRecord = undefined;
     if (selected && !session!.tables().includes(selected)) { selected = session!.tables()[0]; offset = 0; resetView(); }
     if (selected && offset > 0 && !session!.page(selected, offset, effectiveView()).rows.length) offset = Math.max(0, offset - PAGE_SIZE);
     message.textContent = 'Change recorded in the journal.';
@@ -157,13 +170,14 @@ export function mountDatabasePane(
   }
   function connectAutosave(restored?: RecoveryMetadata) {
     autosave = undefined;
+    snapshotDocumentId = session?.editable ? crypto.randomUUID() : undefined;
     if (!recoveryStore || !session?.editable) return;
     const saver = new DocumentAutosave(recoveryStore, () => {
       if (disposed) return;
       if (autosave === saver) renderRecovery();
       if (saver.state.status === 'saved') void refreshRecovery();
     }, restored);
-    autosave = saver;
+    autosave = saver; snapshotDocumentId = saver.id;
     if (!restored) saver.save(session);
   }
   async function restoreRecovery(id: string) {
@@ -323,6 +337,7 @@ export function mountDatabasePane(
     } else tools.replaceChildren();
     renderTable();
     renderRecovery();
+    snapshots?.contextChanged();
     changed(session?.name, busy);
   }
   function syncActions() {
@@ -378,7 +393,7 @@ export function mountDatabasePane(
   function close() {
     if (busy || !discard()) return;
     showWorkspace();
-    session?.close(); session = undefined; autosave = undefined; selected = undefined; offset = 0; resetView();
+    session?.close(); session = undefined; autosave = undefined; snapshotDocumentId = undefined; selected = undefined; offset = 0; resetView();
     cancelEditing(); closeHistory(); selectedRecord = undefined;
     message.textContent = 'Database closed. Original files were not changed.';
     render();
@@ -402,6 +417,18 @@ export function mountDatabasePane(
   const deleteButton = button('Delete selected', () => report(() => { if (!draftChanged || confirmDiscard()) apply(() => session!.deleteRecord(selected!, selectedRecord!)); }));
   const undoButton = button('Undo last change', () => report(() => { if (!draftChanged || confirmDiscard()) apply(() => session!.undo()); }));
   const historyButton = button('Record history', () => report(() => openRecordHistory()));
+  if (dependencies.snapshots) {
+    snapshots = mountSnapshots(snapshotPanel, dependencies.snapshots, dependencies.snapshotPreferences,
+      () => ({ session, documentId: snapshotDocumentId, busy, draftChanged }),
+      async (bytes, name) => replace(async () => {
+        const copy = DatabaseSession.open(await dependencies.load(), bytes, name);
+        if (copy.editable) copy.markRecoveredChanges();
+        return copy;
+      }), dependencies.download);
+    button('Snapshots', () => { showWorkspace(); snapshots!.show(); });
+    registry.bind('file.snapshots', () => { showWorkspace(); snapshots!.show(); }, () => !busy);
+    registry.bind('recover.autoSnapshots', () => { showWorkspace(); snapshots!.show(); snapshots!.toggleAutomatic(); }, () => !busy);
+  }
   input.addEventListener('change', () => { const file = input.files?.[0]; input.value = ''; const readOnly = openAsReadOnly; openAsReadOnly = false; if (file) void openFile(file, readOnly); });
   for (const [id, handler, enabled] of [
     ['file.new', () => newButton.click(), () => !busy],
@@ -425,9 +452,9 @@ export function mountDatabasePane(
   ] as const) registry.bind(id, handler, enabled);
   if (recoveryStore) registry.bind('file.openRecent', () => { showWorkspace(); recovery.scrollIntoView?.({ block: 'start' }); recoveryHeading.focus(); }, () => recoveryEntries.length > 0 && !busy);
   grid.append(navigation, data);
-  pane.append(title, message, actions, input, recovery, editing, recordHistory, tools, grid, history, note);
+  pane.append(title, message, actions, input, recovery, snapshotPanel, editing, recordHistory, tools, grid, history, note);
   container.append(pane);
   render();
   void refreshRecovery();
-  return { openFile, dispose: () => { disposed = true; window.removeEventListener('beforeunload', beforeUnload); session?.close(); session = undefined; autosave = undefined; } };
+  return { openFile, dispose: () => { disposed = true; snapshots?.dispose(); window.removeEventListener('beforeunload', beforeUnload); session?.close(); session = undefined; autosave = undefined; } };
 }

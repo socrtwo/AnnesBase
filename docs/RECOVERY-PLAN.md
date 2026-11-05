@@ -7,6 +7,8 @@
 - **Never write over the damaged file.** Every repair, including *Compact and Repair*, works on a copy and writes a new file; the original is kept beside it with `(before repair)` in its name until the user deletes it. *Undo Last Repair* (`recover.undoRepair`) switches back.
 - **Never refuse what can be read.** A database with damage opens with every readable table and object, read-only, under a banner: *"This database is damaged. 14 of 16 tables and 97% of rows could be read. Recovery Report…"*.
 - **Explain.** *Recovery Report* (`recover.report`) lists, per object, what was wrong, which method fixed it, and what is missing, in plain language with a technical section below. *Diagnose with AI* (`ai.diagnose`) can explain it further; it receives the report's structure, not the data.
+**Current preview:** labeled manual snapshots and opt-in before-change snapshots are implemented in browser IndexedDB, with per-database count retention, checksum verification and restore as a separate copy. Timed/on-close snapshots and age retention in the plan below remain future work. See [ARCHITECTURE.md](ARCHITECTURE.md#versioned-browser-snapshots).
+
 - **Prevent first.** The native format's journal and snapshots (below) mean most "recovery" in a `.qbase` is an ordinary undo or restore.
 
 ## Pipeline

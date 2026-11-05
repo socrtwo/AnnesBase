@@ -28,7 +28,7 @@ ids, tabs, groups and notes, and displays the first 60 matches. Text is inserted
 through DOM text properties rather than HTML interpolation.
 
 Search Commands, Add All Choices, New, Open/Open Read-Only, Save/Save As (download
-a copy), Close Database, Create Table, New Record, Delete Record, Record History and Undo have handlers. Availability predicates disable
+a copy), Close Database, Create Table, New Record, Delete Record, Record History, Snapshots, Automatic Snapshots and Undo have handlers. Availability predicates disable
 Save and Close without an open database and prevent overlapping file operations.
 Sort Ascending/Descending/Clear, Filter, Apply/Toggle Filter, Clear All Filters and
 Find delegate to the current table's view controls. Availability predicates disable
@@ -92,7 +92,7 @@ byte count. Text displays are shortened after 2,000 characters without modifying
 stored data. Table-view sorting and filtering run in SQLite before paging.
 
 Files are loaded into memory with a 32 MiB input limit. This is not a worker/OPFS
-engine, large-file implementation, snapshot system or encryption layer.
+engine, large-file implementation or encryption layer.
 The browser file picker reads a copy; Save/Save As triggers a separate download
 and does not imply the download completed or replace an existing file. Browser
 autosave preserves committed native state for explicit restoration after reload.
@@ -218,6 +218,40 @@ without a download prompt, but is not a portable backup.
 IndexedDB is scoped to browser profile/origin and can be cleared or evicted.
 This is a latest-state recovery copy, not versioned snapshots, cross-device sync,
 an offline PWA, direct original-file saving or a worker/OPFS SQLite engine.
+
+## Versioned browser snapshots
+
+`src/storage/snapshots.ts` uses a separate IndexedDB database,
+`annesbase.snapshots.v1`, leaving latest-state recovery storage unchanged. Metadata
+and complete SQLite bytes commit atomically. Snapshot ids use add-only inserts;
+concurrent tabs cannot overwrite an existing version. Listing reads metadata only.
+SHA-256 checksums (Web Crypto, HTTPS/localhost) and byte sizes are checked on read;
+restoration also uses the normal SQLite signature, integrity and catalog checks.
+Checksums detect corruption, not malicious alteration of browser storage.
+
+Manual versions are pinned until explicitly removed. Optional automatic captures
+export before a mutation and enqueue only after it succeeds. A serialized queue
+coalesces pending automatic captures per document while retaining every manual
+request. Each automatic transaction prunes older automatic versions for that
+document to the configured count (1–20), preserving manual versions and other
+documents. A failed byte write rolls back both metadata and pruning. Retention
+changes take effect on the next automatic save, not immediately.
+
+`src/ui/snapshots.ts` provides labels, metadata browsing, current/all-document
+scope, download, removal and restore as a separate copy. The copy gets a new
+recovery UUID; the original snapshot and recovery copy remain unchanged. Its
+journal and undo remain available. Captures do not include unfinished drafts;
+restore uses pending-edit protection and validates a candidate before replacing
+the workspace. Snapshot failures do not block edits or claim autosave success.
+Pending snapshot writes retain the leave-page warning. Errors are visible even
+if the panel was closed. UI callbacks stop updating after disposal, while queued
+writes of already captured bytes can finish independently.
+
+Opt-in settings use `annesbase.snapshots.settings.v1`, separate from shell
+preferences; unavailable localStorage falls back to session-only settings with a
+warning. Each SQLite image is limited to 32 MiB. Snapshots remain browser/origin
+storage and are not embedded in the native file. No timed/on-close snapshots,
+age retention, sync, encryption or worker/OPFS snapshots are implemented yet.
 
 ## Validation
 

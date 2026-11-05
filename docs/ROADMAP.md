@@ -17,7 +17,8 @@
 
 - Project scaffold: TypeScript, Vite, vitest, Capacitor 8 (Android, iOS), Electron, PWA manifest and service worker; CI and release workflows from the sister apps.
   - [x] TypeScript/Vite browser entry, vitest, lockfile and web validation CI (`npm ci`, tests, type check and production build).
-  - [ ] Capacitor, Electron, PWA/offline support and multiplatform release workflows.
+  - [x] Installable web manifest/icons, production-only service worker with integrity-checked editor/SQLite precache, offline readiness/repair, install prompt and update status; updates wait for all clients to close and preserve IndexedDB user data. Relative deployment paths and offline editing are browser-verified.
+  - [ ] Capacitor, Electron and multiplatform release workflows. Public web hosting/deployment is not configured.
 - Suite shell: command registry, ribbon, Quick Access Bar with **Add All Choices** (`view.qatAddAll`), Customize Ribbon and Keyboard, command search, Backstage, preferences, settings import/export, portable mode.
   - [x] Registry for every planned command, search, ribbon groups, Quick Access pin/unpin/clear, standard and extra choices with Save/Print first, and browser-persisted pins/menu selection. Execution requires a real handler; unimplemented commands stay unavailable.
   - [x] Modern Office-style ribbon tabs with keyboard navigation and Word-style File/Backstage navigation; database actions stay unavailable until implemented.

@@ -1,0 +1,16 @@
+{
+  "id": "./",
+  "name": "Anne's Base",
+  "short_name": "Anne's Base",
+  "description": "A local database editor from Anne's Office, with journaled editing, snapshots and offline support.",
+  "lang": "en",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#a3324f",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

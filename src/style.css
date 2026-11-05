@@ -174,3 +174,8 @@ main > p { font-size: 12px; }
 .browser-snapshots > input { max-width: 100%; margin: 8px; }
 .browser-snapshots > label { display: block; margin: 10px 0; }
 .browser-snapshots [role=alert] { color: #a11a38; overflow-wrap: anywhere; }
+
+.app-availability { padding: 12px 28px; border-top: 1px solid #e5e5e5; background: #fff; overflow-wrap: anywhere; }
+.app-availability p { margin: 8px 0; }
+.app-availability button { margin: 4px 8px 4px 0; }
+.offline-help { color: #616161; font-size: 12px; max-width: 80ch; }

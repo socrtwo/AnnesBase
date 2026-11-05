@@ -317,4 +317,53 @@ describe('database workspace', () => {
     expect(root.querySelector<HTMLTextAreaElement>('.database-editor textarea')?.value).toBe('Keep this draft');
     expect(root.querySelectorAll('tbody tr')).toHaveLength(3);
   });
+
+  it('reviews record before/after values and journals an undoable selective restoration', async () => {
+    const { root, registry, button } = setup();
+    button('Try sample database').click(); await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Sample.qbase'));
+    for (const value of ['First version', 'Second version']) {
+      root.querySelector<HTMLInputElement>('[aria-label="Select record 1"]')!.click(); button('Edit selected').click();
+      root.querySelector<HTMLTextAreaElement>('.database-editor textarea')!.value = value;
+      root.querySelector<HTMLFormElement>('.database-editor form')!.requestSubmit();
+    }
+    root.querySelector<HTMLInputElement>('[aria-label="Select record 1"]')!.click(); registry.execute('record.history');
+    expect(root.querySelector('.record-history-values')?.textContent).toContain('First version');
+    expect(root.querySelector('.record-history-values')?.textContent).toContain('Second version');
+    button('Restore before values').click();
+    expect(root.querySelector('.datasheet tbody')?.textContent).toContain('First version');
+    expect(root.querySelector<HTMLElement>('.record-history')?.hidden).toBe(true);
+    expect(root.querySelector('.change-history')?.textContent).toContain('restore');
+    registry.execute('edit.undo'); expect(root.querySelector('.datasheet tbody')?.textContent).toContain('Second version');
+  });
+
+  it('finds deleted-record history by id and restores it while preserving unrelated rows', async () => {
+    const { root, registry, button } = setup();
+    button('Try sample database').click(); await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Sample.qbase'));
+    root.querySelector<HTMLInputElement>('[aria-label="Select record 1"]')!.click(); registry.execute('record.delete');
+    expect(root.querySelectorAll('.datasheet tbody tr')).toHaveLength(2);
+    button('Record history').click();
+    root.querySelector<HTMLInputElement>('[aria-label="Record history id"]')!.value = '1';
+    root.querySelector<HTMLFormElement>('.record-history form')!.requestSubmit();
+    expect(root.querySelector('.record-history')?.textContent).toContain('not currently present');
+    expect(button('Restore after values').disabled).toBe(true);
+    button('Restore before values').click();
+    expect(root.querySelectorAll('.datasheet tbody tr')).toHaveLength(3);
+    expect(root.querySelector('.datasheet tbody')?.textContent).toContain('Alex Example');
+    registry.execute('edit.undo'); expect(root.querySelectorAll('.datasheet tbody tr')).toHaveLength(2);
+  });
+
+  it('preserves a record draft when opening history is cancelled and keeps read-only history disabled', async () => {
+    const { root, registry, pane, button, confirmDiscard } = setup();
+    button('Try sample database').click(); await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Sample.qbase'));
+    root.querySelector<HTMLInputElement>('[aria-label="Select record 1"]')!.click(); button('Edit selected').click();
+    const draft = root.querySelector<HTMLTextAreaElement>('.database-editor textarea')!;
+    draft.value = 'Keep draft'; draft.dispatchEvent(new Event('input', { bubbles: true }));
+    confirmDiscard.mockReturnValue(false); registry.execute('record.history');
+    expect(root.querySelector<HTMLElement>('.record-history')?.hidden).toBe(true);
+    expect(root.querySelector<HTMLTextAreaElement>('.database-editor textarea')?.value).toBe('Keep draft');
+    button('Cancel editing').click();
+    const native = DatabaseSession.create(sqlite, true); const bytes = native.exportCopy(); native.close();
+    await pane.openFile(fileFrom(bytes, 'readonly.qbase'), true);
+    expect(registry.isAvailable('record.history')).toBe(false); expect(button('Record history').disabled).toBe(true);
+  });
 });

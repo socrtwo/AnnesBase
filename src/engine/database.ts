@@ -40,7 +40,7 @@ export class DatabaseSession {
         try {
           const metadata = db.exec("SELECT key, value FROM qb_meta WHERE key IN ('application', 'schema_version')");
           const values = new Map(metadata[0]?.values.map(row => [row[0], row[1]]));
-          isNative = values.get('application') === 'annes-base' && ['0-preview', '1-preview'].includes(String(values.get('schema_version')));
+          isNative = values.get('application') === 'annes-base' && ['0-preview', '1-preview', '2-preview'].includes(String(values.get('schema_version')));
         } catch { /* An unrelated SQLite table named qb_meta is ordinary user data. */ }
       }
       return new DatabaseSession(db, name, isNative, isNative && !readOnly ? NativeJournal.attach(db) : undefined);
@@ -106,6 +106,8 @@ export class DatabaseSession {
   deleteRecord(table: string, id: string): void { this.writable().delete(table, id); }
   record(table: string, id: string): Cell[] { return this.writable().record(table, id); }
   history() { this.assertOpen(); return this.journal?.history() ?? []; }
+  recordHistory(table: string, id: string, beforeEvent?: string) { return this.writable().recordHistory(table, id, beforeEvent); }
+  restoreVersion(table: string, id: string, eventId: string, side: 'before' | 'after', expectedCurrent: string | null) { this.writable().restoreVersion(table, id, eventId, side, expectedCurrent); }
   canUndo(): boolean { this.assertOpen(); return this.journal?.canUndo() ?? false; }
   undo(): void { this.writable().undo(); }
 

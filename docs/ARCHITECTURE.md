@@ -28,7 +28,7 @@ ids, tabs, groups and notes, and displays the first 60 matches. Text is inserted
 through DOM text properties rather than HTML interpolation.
 
 Search Commands, Add All Choices, New, Open/Open Read-Only, Save/Save As (download
-a copy), Close Database, Create Table, New Record, Delete Record and Undo have handlers. Availability predicates disable
+a copy), Close Database, Create Table, New Record, Delete Record, Record History and Undo have handlers. Availability predicates disable
 Save and Close without an open database and prevent overlapping file operations.
 Sort Ascending/Descending/Clear, Filter, Apply/Toggle Filter, Clear All Filters and
 Find delegate to the current table's view controls. Availability predicates disable
@@ -69,10 +69,14 @@ loaded lazily by `src/engine/browser.ts` from Vite's emitted assets, without a
 runtime CDN. The sql.js license is bundled in `public/licenses/sql.js.txt`.
 
 New files contain `qb_meta` with application `annes-base` and schema version
-`1-preview`; this is an experimental catalog, not the final native format. The
+`2-preview`; this is an experimental catalog, not the final native format. The
 sample adds Customers and Orders with fictional data (relationships are not enforced).
 The old `0-preview` catalog remains readable without a silent migration. Native metadata is hidden
 from table navigation only when the application and version markers match.
+Supported `1-preview` files remain editable. Their metadata moves to `2-preview`
+in the same transaction as the first selective restore. Failed restores roll
+back this marker too; schema structure is unchanged. Older app builds cannot
+edit the new format or interpret its restore journal operation.
 
 Opening validates the SQLite signature and `PRAGMA quick_check(1)` before
 replacing the current session. Failed opens leave the previous database intact.
@@ -119,8 +123,39 @@ redo is not offered. The journal is part of the downloaded database.
 `src/ui/editors.ts` provides a field-list form and record forms with explicit null
 controls. Edits are committed on Save record, not per keystroke. Selection enables
 Edit/Delete; change history shows the latest 100 entries. Existing-table schema
-changes, foreign-key design, arbitrary SQLite writes, per-record restore and
-as-of views remain planned.
+changes, foreign-key design, arbitrary SQLite writes and as-of views remain planned.
+
+## Record history and selective restoration
+
+`recordHistory()` validates and decodes per-record before/after images in pages
+of 50 entries, with a lookahead. It includes undone entries for inspection and
+returns an optimistic token representing the current complete row (or absence).
+The UI compares field values and permits restoration only of a non-absent image.
+Long display values are shortened without changing the restored data.
+
+`restoreVersion()` validates table/record/event ownership, checks the preview
+token and the current row's consistency with active history, then inserts or
+updates the chosen image and appends a `restore` event in one transaction. It
+never reactivates older events. Global Undo reverses this event using its own
+before image, including returning a recovered record to an absent state.
+Unrelated rows and their history are preserved. Malformed images, stale previews,
+external row changes and journal-write failures stop without partial writes.
+
+Automatic inserts choose one more than the largest current or historic record
+id in the current table lifetime, including undone history, and fail on 64-bit
+exhaustion. Restoring the original id is allowed because it restores that same
+record rather than allocating a new identity. Legacy files with multiple insert
+events for one id are ambiguous and cannot selectively restore that id. The
+latest active create-table event bounds each table lifetime, so drop/recreate
+cannot expose earlier incarnations for restoration. Baseline versions that were
+never journaled are not synthesized.
+
+`src/ui/recordHistory.ts` offers an id picker, before/after review, older-page
+loading and restore actions. The pane closes on successful mutations, database
+changes and table/view changes. Restore refreshes the data view and participates
+in browser autosave. Per-record history is limited to supported editable native
+schemas; related-record restoration, actor metadata and bulk/as-of workflows
+are not provided yet.
 
 ## Table views
 

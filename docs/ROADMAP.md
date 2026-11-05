@@ -28,6 +28,7 @@
 - Storage engine: SQLite WASM, `.qbase` catalog, **journal**, snapshots, encryption.
   - [x] Locally bundled SQLite WASM, experimental `0-preview` native metadata, blank/sample creation, checked read-only file opening and copy download; 32 MiB in-memory input limit.
   - [x] Experimental `1-preview` managed-table catalog and transactional before/after journal; sequential undo survives download/reopen. Ordinary/old/unsupported database schemas remain read-only.
+  - [x] `2-preview` selective-restore events, no automatic record-id reuse, stale-preview/journal-consistency checks and transactional upgrade of supported `1-preview` files on first selective restore.
   - [x] IndexedDB recovery copies for each editable native database, atomic metadata/byte writes, reload restoration with undo history, serialized/coalesced autosaves, stale-tab revision checks and visible storage-error retry.
   - [ ] Worker/OPFS and platform storage, finalized object catalog, transaction grouping across multiple operations, versioned snapshots and encryption.
 - Navigation pane and Database window; Table Datasheet and Design views with every field type, properties, validation, indexes, lookups; record commands, sort and filter (selection, form, advanced), find and replace, totals row.
@@ -37,7 +38,8 @@
   - [ ] Existing-table schema design, remaining field types, validation/index/lookup designers, virtualized large-data grids, multi-column/advanced sort, multi-condition/saved filters and the remaining record commands.
 - Undo Delete, Record History, Show Table as of (the journal's first uses).
   - [x] Global Undo restores deletions and previous row values; the latest 100 journal entries are visible in Change history.
-  - [ ] Dedicated per-record history/restore, as-of table views and the full Undo Delete workflow.
+  - [x] Per-record before/after history with older-page loading, deleted-record id lookup and selective restore as a new undoable change; history and restore survive download/reload.
+  - [ ] Actor attribution, related-record and bulk restoration, as-of table views and the full Undo Delete workflow.
 - [x] A catalog test comparing the registry with `docs/commands-plan.json`, including every menu, ribbon and Home-tab reference. This checks registration coverage, not implementation of every planned command.
 
 ## M2 — Queries and relationships

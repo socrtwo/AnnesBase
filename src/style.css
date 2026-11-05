@@ -114,6 +114,18 @@ main > p { font-size: 12px; }
 .table-view-form input[type=search] { margin: 0; }
 .table-tools p { margin-bottom: 0; font-size: 12px; }
 .table-tools [role=alert] { color: #a12635; }
+.record-history { margin: 20px 0; padding: 18px; border: 1px solid #c99aa9; border-radius: 8px; background: #fffafa; }
+.record-history h3 { font-size: 18px; font-weight: 600; color: #242424; overflow-wrap: anywhere; }
+.record-history form, .history-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin: 12px 0; }
+.record-history label { display: flex; flex-direction: column; gap: 6px; }
+.record-history input { padding: 8px; border: 1px solid #bbb; border-radius: 5px; max-width: 100%; font: inherit; }
+.record-history select { max-width: 100%; width: 100%; }
+.record-history [role=alert] { color: #a12635; }
+.record-history p { font-size: 13px; }
+.record-history-values { max-height: 360px; overflow: auto; margin: 16px 0; }
+.record-history-values table { border-collapse: collapse; width: 100%; background: white; font-size: 13px; }
+.record-history-values th, .record-history-values td { padding: 10px; border: 1px solid #ddd; text-align: left; min-width: 100px; max-width: 300px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.change-history li button { margin-left: 10px; font-size: 12px; }
 .backstage { display: grid; grid-template-columns: 180px minmax(0, 1fr); min-height: calc(100vh - 90px); background: #fafafa; }
 .backstage-nav { background: var(--accent); padding: 16px 0; display: flex; flex-direction: column; align-items: stretch; }
 .backstage-nav button { color: white; border: 0; border-radius: 0; background: transparent; text-align: left; font-size: 14px; padding: 12px 28px; }

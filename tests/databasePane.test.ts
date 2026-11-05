@@ -5,6 +5,8 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createRegistry } from '../src/commands/registry';
 import { DatabaseSession } from '../src/engine/database';
 import { mountDatabasePane } from '../src/ui/databasePane';
+import { IDBFactory } from 'fake-indexeddb';
+import { IndexedDbRecoveryStore, type RecoveryStore } from '../src/storage/recovery';
 
 let sqlite: SqlJsStatic;
 const cleanups: (() => void)[] = [];
@@ -13,14 +15,14 @@ beforeAll(async () => {
 });
 afterEach(() => { cleanups.splice(0).forEach(cleanup => cleanup()); document.body.replaceChildren(); });
 
-function setup(load = async () => sqlite) {
+function setup(load = async () => sqlite, recovery?: RecoveryStore) {
   const root = document.createElement('div');
   document.body.append(root);
   const registry = createRegistry();
   const download = vi.fn();
   const confirmDiscard = vi.fn(() => true);
   const changed = vi.fn();
-  const pane = mountDatabasePane(root, registry, changed, vi.fn(), { load, download, confirmDiscard });
+  const pane = mountDatabasePane(root, registry, changed, vi.fn(), { load, download, confirmDiscard, recovery });
   cleanups.push(pane.dispose);
   const button = (label: string) => [...root.querySelectorAll('button')].find(button => button.textContent === label)!;
   return { root, registry, pane, download, changed, button, confirmDiscard };
@@ -169,5 +171,83 @@ describe('database workspace', () => {
     button('Cancel editing').click();
     const cancelled = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(cancelled);
     expect(cancelled.defaultPrevented).toBe(false);
+  });
+
+  it('restores browser-saved records and undo after the old workspace is disposed', async () => {
+    const factory = new IDBFactory(); const storage = new IndexedDbRecoveryStore(() => factory);
+    const first = setup(undefined, storage);
+    first.button('Try sample database').click();
+    await vi.waitFor(() => expect(first.root.querySelector('h2')?.textContent).toBe('Sample.qbase'));
+    first.root.querySelector<HTMLInputElement>('tbody input[type=radio]')!.click();
+    first.button('Edit selected').click();
+    first.root.querySelector<HTMLTextAreaElement>('.database-editor textarea')!.value = 'Recovered customer';
+    first.root.querySelector<HTMLFormElement>('.database-editor form')!.requestSubmit();
+    await vi.waitFor(async () => expect((await storage.list())[0]?.revision).toBeGreaterThanOrEqual(2));
+    expect(first.root.querySelector('.browser-recovery')?.textContent).toContain('Saved in this browser');
+    const unload = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(false);
+    first.pane.dispose(); first.root.remove();
+    const second = setup(undefined, storage);
+    await vi.waitFor(() => expect(second.registry.isAvailable('file.openRecent')).toBe(true));
+    second.root.querySelector<HTMLButtonElement>('.recovery-list button')!.click();
+    await vi.waitFor(() => expect(second.root.textContent).toContain('Recovered customer'));
+    second.registry.execute('edit.undo');
+    expect(second.root.querySelector('tbody')?.textContent).toContain('Alex Example');
+    expect(second.registry.isAvailable('edit.undo')).toBe(false);
+  });
+
+  it('preserves separate browser copies on switching databases and removes only the chosen inactive copy', async () => {
+    const factory = new IDBFactory(); const storage = new IndexedDbRecoveryStore(() => factory);
+    const { root, button } = setup(undefined, storage);
+    button('Try sample database').click();
+    await vi.waitFor(async () => expect(await storage.list()).toHaveLength(1));
+    button('New blank database').click();
+    await vi.waitFor(async () => expect(await storage.list()).toHaveLength(2));
+    const remove = () => root.querySelector<HTMLButtonElement>('[aria-label="Remove browser copy of Sample.qbase"]');
+    await vi.waitFor(() => expect(remove()).not.toBeNull());
+    expect(remove()!.disabled).toBe(false); remove()!.click();
+    await vi.waitFor(async () => expect(await storage.list()).toHaveLength(1));
+    expect((await storage.list())[0].name).toBe('Untitled.qbase');
+    expect(root.querySelector<HTMLButtonElement>('[aria-label="Remove browser copy of Untitled.qbase"]')?.disabled).toBe(true);
+  });
+
+  it('keeps the pending-edit guard on quota errors and retries autosave without a download', async () => {
+    const factory = new IDBFactory(); const base = new IndexedDbRecoveryStore(() => factory); let fail = true;
+    const storage: RecoveryStore = { list: () => base.list(), read: id => base.read(id), remove: (id, revision) => base.remove(id, revision), save: async (...args) => {
+      if (fail) throw new Error('Quota exceeded'); return base.save(...args);
+    } };
+    const { root, button, registry, download } = setup(undefined, storage);
+    button('New blank database').click();
+    await vi.waitFor(() => expect(registry.isAvailable('create.table')).toBe(true));
+    button('Create table').click(); root.querySelector<HTMLFormElement>('.database-editor form')!.requestSubmit();
+    await vi.waitFor(() => expect(root.querySelector('.browser-recovery')?.textContent).toContain('Quota exceeded'));
+    const unload = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(true);
+    fail = false; button('Retry browser autosave').click();
+    await vi.waitFor(() => expect(root.querySelector('.browser-recovery')?.textContent).toContain('Saved in this browser'));
+    const saved = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(saved);
+    expect(saved.defaultPrevented).toBe(false); expect(download).not.toHaveBeenCalled();
+    expect(await base.list()).toHaveLength(1);
+  });
+
+  it('can restore the newer copy after a stale-tab autosave conflict', async () => {
+    const factory = new IDBFactory(); const storage = new IndexedDbRecoveryStore(() => factory);
+    const { root, button, confirmDiscard } = setup(undefined, storage);
+    button('Try sample database').click();
+    await vi.waitFor(async () => expect(await storage.list()).toHaveLength(1));
+    const saved = await storage.read((await storage.list())[0].id);
+    const other = DatabaseSession.open(sqlite, new Uint8Array(saved.bytes), saved.name);
+    other.updateRecord('Customers', '1', { name: 'Other tab customer', city: null });
+    await storage.save({ ...saved, bytes: Uint8Array.from(other.exportCopy()).buffer, pendingDownload: true }, saved.revision);
+    other.close();
+    root.querySelector<HTMLInputElement>('tbody input[type=radio]')!.click(); button('Edit selected').click();
+    root.querySelector<HTMLTextAreaElement>('.database-editor textarea')!.value = 'Local stale customer';
+    root.querySelector<HTMLFormElement>('.database-editor form')!.requestSubmit();
+    await vi.waitFor(() => expect(root.querySelector('.browser-recovery')?.textContent).toContain('changed in another tab'));
+    expect(root.querySelector('tbody')?.textContent).toContain('Local stale customer');
+    const restore = root.querySelector<HTMLButtonElement>('[aria-label="Restore Sample.qbase"]')!;
+    expect(restore.disabled).toBe(false); restore.click();
+    await vi.waitFor(() => expect(root.querySelector('tbody')?.textContent).toContain('Other tab customer'));
+    expect(confirmDiscard).toHaveBeenCalledOnce();
   });
 });

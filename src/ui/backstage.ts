@@ -50,7 +50,7 @@ export function createBackstage(
     const title = heading(content, page.title === 'Home' ? 'Welcome to Anne’s Base' : page.title, page.description);
     const notice = document.createElement('p');
     notice.className = 'preview-notice';
-    notice.textContent = 'Database preview · Native tables support editing with a journal and undo. Download a copy to keep changes. Recovery is still in development.';
+    notice.textContent = 'Database preview · Native edits autosave in this browser when available. Keep downloaded backups. Damaged-file repair is still in development.';
     content.append(notice);
     if (page.title === 'Home') {
       const actions = document.createElement('div');
@@ -58,7 +58,8 @@ export function createBackstage(
       actions.append(commandButton('file.new'), commandButton('file.open'));
       const recent = document.createElement('section');
       recent.className = 'file-empty';
-      heading(recent, 'Recent databases', 'No recent databases yet. Use Open to browse a SQLite file from your device.');
+      heading(recent, 'Recent databases', 'Restore a recovery copy saved by this browser, or use Open to browse a file from your device.');
+      recent.append(commandButton('file.openRecent'));
       content.append(actions, recent);
     } else if (page.title === 'Options') {
       const customize = document.createElement('button');

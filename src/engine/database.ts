@@ -84,6 +84,7 @@ export class DatabaseSession {
   get editable(): boolean { this.assertOpen(); return !!this.journal; }
   get hasChanges(): boolean { this.assertOpen(); return this.journal?.changed ?? false; }
   acknowledgeDownload(): void { if (this.journal) this.journal.changed = false; }
+  markRecoveredChanges(): void { this.writable().changed = true; }
   private writable(): NativeJournal {
     this.assertOpen();
     if (!this.journal) throw new Error('This database is read-only. Create a new native database to edit records.');

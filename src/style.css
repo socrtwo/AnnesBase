@@ -99,6 +99,13 @@ main > p { font-size: 12px; }
 .change-history { margin: 16px 0; border-top: 1px solid #ddd; padding-top: 8px; font-size: 12px; }
 .change-history ol { max-height: 220px; overflow: auto; padding-left: 24px; }
 .change-history li { margin: 8px 0; overflow-wrap: anywhere; }
+.browser-recovery { margin: 20px 0; padding: 16px; background: #f7f4f5; border: 1px solid #e4d6dc; border-radius: 6px; }
+.browser-recovery h3 { margin-top: 0; color: #242424; font-size: 15px; font-weight: 600; }
+.browser-recovery p { margin-bottom: 12px; }
+.recovery-list { padding: 0; list-style: none; }
+.recovery-list li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 0; font-size: 12px; }
+.recovery-list span { flex: 1; min-width: 160px; overflow-wrap: anywhere; }
+.recovery-list button { font-size: 12px; }
 .backstage { display: grid; grid-template-columns: 180px minmax(0, 1fr); min-height: calc(100vh - 90px); background: #fafafa; }
 .backstage-nav { background: var(--accent); padding: 16px 0; display: flex; flex-direction: column; align-items: stretch; }
 .backstage-nav button { color: white; border: 0; border-radius: 0; background: transparent; text-align: left; font-size: 14px; padding: 12px 28px; }

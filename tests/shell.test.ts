@@ -71,7 +71,7 @@ describe('application shell', () => {
     expect(backstage.hidden).toBe(false);
     expect(root.querySelector<HTMLElement>('.workspace')!.hidden).toBe(true);
     expect(backstage.textContent).toContain('Welcome to Anne’s Base');
-    expect(backstage.textContent).toContain('No recent databases');
+    expect(backstage.textContent).toContain('Restore a recovery copy');
     for (const button of backstage.querySelectorAll<HTMLButtonElement>('.backstage-nav button:not(.backstage-back)')) {
       button.click();
       expect(button.getAttribute('aria-current')).toBe('page');

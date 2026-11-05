@@ -1,6 +1,6 @@
 # Roadmap
 
-> **In progress: early M1 native editor.** The browser shell supports native table creation, record editing, transactional history and sequential undo, plus read-only SQLite browsing. Automatic persistent storage, snapshots, full field design and platform packaging remain unfinished. Milestones are ordered by dependency, not by date. The release goal for each milestone from M1 on is a tagged prerelease built for every platform; that workflow is not implemented yet. Command ids refer to [COMMANDS-PLAN.md](COMMANDS-PLAN.md).
+> **In progress: early M1 native editor.** The browser shell supports native table creation, record editing, transactional history, sequential undo and browser autosave/restore, plus read-only SQLite browsing. Worker/OPFS storage, versioned snapshots, full field design and platform packaging remain unfinished. Milestones are ordered by dependency, not by date. The release goal for each milestone from M1 on is a tagged prerelease built for every platform; that workflow is not implemented yet. Command ids refer to [COMMANDS-PLAN.md](COMMANDS-PLAN.md).
 
 ## M0 — Planning (this repository)
 
@@ -28,7 +28,8 @@
 - Storage engine: SQLite WASM, `.qbase` catalog, **journal**, snapshots, encryption.
   - [x] Locally bundled SQLite WASM, experimental `0-preview` native metadata, blank/sample creation, checked read-only file opening and copy download; 32 MiB in-memory input limit.
   - [x] Experimental `1-preview` managed-table catalog and transactional before/after journal; sequential undo survives download/reopen. Ordinary/old/unsupported database schemas remain read-only.
-  - [ ] Worker/OPFS and platform storage, finalized object catalog, transaction grouping across multiple operations, snapshots and encryption.
+  - [x] IndexedDB recovery copies for each editable native database, atomic metadata/byte writes, reload restoration with undo history, serialized/coalesced autosaves, stale-tab revision checks and visible storage-error retry.
+  - [ ] Worker/OPFS and platform storage, finalized object catalog, transaction grouping across multiple operations, versioned snapshots and encryption.
 - Navigation pane and Database window; Table Datasheet and Design views with every field type, properties, validation, indexes, lookups; record commands, sort and filter (selection, form, advanced), find and replace, totals row.
   - [x] Table navigation and read-only datasheet pages, preserving integer precision and displaying nulls/blobs safely.
   - [x] Basic table creation (Text, Whole number, Decimal number, non-null fields, automatic integer primary key), record insert/update/delete, null controls and sequential undo; pending-edit and draft guards.

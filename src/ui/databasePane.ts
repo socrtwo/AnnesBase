@@ -2,13 +2,17 @@ import type { SqlJsStatic } from 'sql.js';
 import type { CommandRegistry } from '../commands/registry';
 import { DatabaseSession, MAX_DATABASE_BYTES, PAGE_SIZE, type Cell } from '../engine/database';
 import { recordEditor, tableEditor } from './editors';
+import { IndexedDbRecoveryStore, type RecoveryMetadata, type RecoveryStore } from '../storage/recovery';
+import { DocumentAutosave } from '../storage/autosave';
 
 export interface DatabaseDependencies {
   load: () => Promise<SqlJsStatic>;
   download: (bytes: Uint8Array, name: string) => void;
   confirmDiscard?: () => boolean;
+  recovery?: RecoveryStore;
 }
 const defaultDependencies: DatabaseDependencies = {
+  recovery: new IndexedDbRecoveryStore(),
   load: async () => (await import('../engine/browser')).loadSqlite(),
   download: (bytes, name) => {
     const url = URL.createObjectURL(new Blob([Uint8Array.from(bytes).buffer], { type: 'application/vnd.sqlite3' }));
@@ -41,6 +45,12 @@ export function mountDatabasePane(
   let selectedRecord: string | undefined;
   let draftChanged = false;
   let openAsReadOnly = false;
+  let autosave: DocumentAutosave | undefined;
+  let recoveryEntries: RecoveryMetadata[] = [];
+  let recoveryError = '';
+  let listing = 0;
+  let recoveryBusy = false;
+  const recoveryStore = dependencies.recovery;
   const pane = node('section');
   pane.className = 'database-pane';
   pane.setAttribute('aria-label', 'Database workspace');
@@ -66,26 +76,101 @@ export function mountDatabasePane(
   navigation.setAttribute('aria-label', 'Database tables');
   const data = node('div');
   data.className = 'datasheet';
-  const note = node('p', 'Native tables support journaled edits and undo. Other SQLite files are read-only. Download a copy to keep changes; reloading clears the workspace. Limit: 32 MiB.');
+  const note = node('p', 'Native edits autosave as recovery copies in this browser when storage is available. Unfinished forms are not autosaved. Keep downloaded backups: browser storage can be cleared or evicted. Other SQLite files are read-only. Limit: 32 MiB.');
   note.className = 'database-note';
   const editing = node('section'); editing.className = 'database-editor'; editing.hidden = true;
   editing.setAttribute('aria-label', 'Database editor');
   const history = node('details'); history.className = 'change-history';
+  const recovery = node('section'); recovery.className = 'browser-recovery';
+  recovery.setAttribute('aria-label', 'Browser recovery copies'); recovery.hidden = !recoveryStore;
+  const recoveryHeading = node('h3', 'Browser recovery copies'); recoveryHeading.tabIndex = -1;
+  const autosaveStatus = node('p'); autosaveStatus.setAttribute('role', 'status');
+  const recoveryList = node('ul'); recoveryList.className = 'recovery-list';
+  const retry = node('button', 'Retry browser autosave');
+  retry.addEventListener('click', () => { if (session && autosave && !busy) autosave.save(session); });
+  recovery.append(recoveryHeading, autosaveStatus, retry, recoveryList);
+  const needsProtection = () => draftChanged || !!session?.hasChanges && autosave?.state.status !== 'saved';
   const confirmDiscard = () => (dependencies.confirmDiscard ?? (() => window.confirm('There are unsaved changes. Discard those changes?')))();
-  const discard = () => !session?.hasChanges && !draftChanged || confirmDiscard();
+  const discard = () => !needsProtection() || confirmDiscard();
   const beforeUnload = (event: BeforeUnloadEvent) => {
-    if (session?.hasChanges || draftChanged) { event.preventDefault(); event.returnValue = ''; }
+    if (needsProtection()) { event.preventDefault(); event.returnValue = ''; }
   };
   window.addEventListener('beforeunload', beforeUnload);
-  editing.addEventListener('input', () => { draftChanged = true; });
-  const cancelEditing = () => { editing.replaceChildren(); editing.hidden = true; draftChanged = false; };
+  editing.addEventListener('input', () => { draftChanged = true; renderRecovery(); });
+  const cancelEditing = () => { editing.replaceChildren(); editing.hidden = true; draftChanged = false; renderRecovery(); };
   function apply(change: () => void) {
     if (busy) throw new Error('Wait for the database to finish loading.');
     change(); cancelEditing(); selectedRecord = undefined;
     if (selected && !session!.tables().includes(selected)) { selected = session!.tables()[0]; offset = 0; }
     if (selected && offset > 0 && !session!.page(selected, offset).rows.length) offset = Math.max(0, offset - PAGE_SIZE);
-    message.textContent = 'Change recorded in the journal. Download a copy to keep it.';
+    message.textContent = 'Change recorded in the journal.';
+    if (session && autosave) autosave.save(session);
     render();
+  }
+  async function refreshRecovery() {
+    if (!recoveryStore || disposed) return;
+    const request = ++listing;
+    try {
+      const entries = await recoveryStore.list();
+      if (disposed || request !== listing) return;
+      recoveryEntries = entries; recoveryError = '';
+    } catch (error) {
+      if (disposed || request !== listing) return;
+      recoveryError = error instanceof Error ? error.message : String(error);
+    }
+    renderRecovery(); changed(session?.name, busy);
+  }
+  function renderRecovery() {
+    retry.hidden = autosave?.state.status !== 'error'; retry.disabled = busy;
+    if (autosave?.state.status === 'saved') autosaveStatus.textContent = 'Saved in this browser. Download a copy for a portable backup.';
+    else if (autosave?.state.status === 'saving') autosaveStatus.textContent = 'Saving a browser recovery copy… Keep this page open until it finishes.';
+    else if (autosave?.state.status === 'error') autosaveStatus.textContent = `Browser autosave failed: ${autosave.state.message} Download a copy to keep your changes.`;
+    else autosaveStatus.textContent = recoveryError ? `Browser recovery unavailable: ${recoveryError}` : 'Committed edits to native databases are saved only in this browser on this site.';
+    if (draftChanged) autosaveStatus.textContent += ' The current form has unsaved edits.';
+    recoveryList.replaceChildren();
+    for (const entry of recoveryEntries) {
+      const item = node('li');
+      const description = node('span', `${entry.name} · ${new Date(entry.savedAt).toLocaleString()}${entry.id === autosave?.id ? ' · Open' : ''}`);
+      const restore = node('button', 'Restore copy');
+      restore.setAttribute('aria-label', `Restore ${entry.name}`);
+      restore.disabled = busy || recoveryBusy || entry.id === autosave?.id && autosave.state.status !== 'error';
+      restore.addEventListener('click', () => { void restoreRecovery(entry.id); });
+      const remove = node('button', 'Remove copy');
+      remove.setAttribute('aria-label', `Remove browser copy of ${entry.name}`);
+      remove.disabled = busy || recoveryBusy || entry.id === autosave?.id;
+      remove.addEventListener('click', () => { void removeRecovery(entry); });
+      item.append(description, restore, remove); recoveryList.append(item);
+    }
+    if (!recoveryEntries.length) recoveryList.append(node('li', 'No browser recovery copies yet.'));
+  }
+  function connectAutosave(restored?: RecoveryMetadata) {
+    autosave = undefined;
+    if (!recoveryStore || !session?.editable) return;
+    const saver = new DocumentAutosave(recoveryStore, () => {
+      if (disposed) return;
+      if (autosave === saver) renderRecovery();
+      if (saver.state.status === 'saved') void refreshRecovery();
+    }, restored);
+    autosave = saver;
+    if (!restored) saver.save(session);
+  }
+  async function restoreRecovery(id: string) {
+    if (!recoveryStore || recoveryBusy) return;
+    let recovered: RecoveryMetadata | undefined;
+    await replace(async () => {
+      const snapshot = await recoveryStore.read(id);
+      const restored = DatabaseSession.open(await dependencies.load(), new Uint8Array(snapshot.bytes), snapshot.name);
+      if (snapshot.pendingDownload && restored.editable) restored.markRecoveredChanges();
+      recovered = snapshot;
+      return restored;
+    }, () => recovered);
+  }
+  async function removeRecovery(entry: RecoveryMetadata) {
+    if (!recoveryStore || busy || recoveryBusy || entry.id === autosave?.id) return;
+    recoveryBusy = true; renderRecovery();
+    try { await recoveryStore.remove(entry.id, entry.revision); message.textContent = 'Browser recovery copy removed. Downloaded files were not changed.'; }
+    catch (error) { message.textContent = `Cannot remove this copy: ${error instanceof Error ? error.message : String(error)}`; }
+    finally { recoveryBusy = false; if (!disposed) await refreshRecovery(); }
   }
   const report = (action: () => void) => { try { action(); } catch (error) { message.textContent = error instanceof Error ? error.message : String(error); } };
   function createTable() {
@@ -187,6 +272,7 @@ export function mountDatabasePane(
     pane.setAttribute('aria-busy', String(busy));
     editing.inert = busy;
     renderTable();
+    renderRecovery();
     changed(session?.name, busy);
   }
   function syncActions() {
@@ -197,7 +283,7 @@ export function mountDatabasePane(
     undoButton.disabled = busy || !session?.canUndo();
   }
 
-  async function replace(create: () => Promise<DatabaseSession>) {
+  async function replace(create: () => Promise<DatabaseSession>, recovered?: () => RecoveryMetadata | undefined) {
     if (busy || disposed || !discard()) return;
     busy = true;
     message.textContent = 'Loading SQLite…';
@@ -214,6 +300,7 @@ export function mountDatabasePane(
       candidate = undefined;
       selected = tables[0];
       offset = 0;
+      connectAutosave(recovered?.());
       message.textContent = `${session.name} is open ${session.editable ? 'for journaled editing' : 'read-only'}. ${tables.length} user tables.`;
       showWorkspace();
     } catch (error) {
@@ -231,15 +318,16 @@ export function mountDatabasePane(
       const extension = session.isNative ? '.qbase' : '.sqlite';
       dependencies.download(session.exportCopy(), `${base}-copy${extension}`);
       session.acknowledgeDownload();
+      if (autosave) autosave.save(session);
       message.textContent = 'Download started. Keep the downloaded copy; this preview does not save back to the original file.';
     } catch (error) { message.textContent = `Download failed: ${error instanceof Error ? error.message : String(error)}`; }
   }
   function close() {
     if (busy || !discard()) return;
     showWorkspace();
-    session?.close(); session = undefined; selected = undefined; offset = 0;
+    session?.close(); session = undefined; autosave = undefined; selected = undefined; offset = 0;
     cancelEditing(); selectedRecord = undefined;
-    message.textContent = 'Database closed. Files on your device were not changed.';
+    message.textContent = 'Database closed. Original files were not changed.';
     render();
   }
   async function openFile(file: File, readOnly = false) {
@@ -273,9 +361,11 @@ export function mountDatabasePane(
     ['record.delete', () => deleteButton.click(), () => !deleteButton.disabled],
     ['edit.undo', () => undoButton.click(), () => !!session?.canUndo() && !busy],
   ] as const) registry.bind(id, handler, enabled);
+  if (recoveryStore) registry.bind('file.openRecent', () => { showWorkspace(); recovery.scrollIntoView?.({ block: 'start' }); recoveryHeading.focus(); }, () => recoveryEntries.length > 0 && !busy);
   grid.append(navigation, data);
-  pane.append(title, message, actions, input, editing, grid, history, note);
+  pane.append(title, message, actions, input, recovery, editing, grid, history, note);
   container.append(pane);
   render();
+  void refreshRecovery();
   return { openFile, dispose: () => { disposed = true; window.removeEventListener('beforeunload', beforeUnload); session?.close(); } };
 }

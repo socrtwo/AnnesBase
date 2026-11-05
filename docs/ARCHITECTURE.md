@@ -87,11 +87,11 @@ stored data. Pages use SQLite's scan order; sorting and filtering are not provid
 Files are loaded into memory with a 32 MiB input limit. This is not a worker/OPFS
 engine, large-file implementation, snapshot system or encryption layer.
 The browser file picker reads a copy; Save/Save As triggers a separate download
-and does not imply the download completed or replace an existing file. Reloading
-loses the active session. There is no database autosave or saved-recent-file list.
-Closing/replacing a database and beforeunload guard pending mutations and form
-drafts. A successfully requested download clears the pending-mutation guard, but
-the UI explicitly says a started download is not a confirmed save.
+and does not imply the download completed or replace an existing file. Browser
+autosave preserves committed native state for explicit restoration after reload.
+Closing/replacing a database and beforeunload guard mutations not yet autosaved
+or requested for download, and unfinished form drafts. A started download is
+explicitly described as a request, not a confirmed save.
 
 ## Native editing and journal
 
@@ -117,7 +117,42 @@ redo is not offered. The journal is part of the downloaded database.
 controls. Edits are committed on Save record, not per keystroke. Selection enables
 Edit/Delete; change history shows the latest 100 entries. Existing-table schema
 changes, foreign-key design, arbitrary SQLite writes, per-record restore and
-as-of views remain planned. No database autosave exists yet.
+as-of views remain planned.
+
+## Browser autosave and recovery
+
+`src/storage/recovery.ts` uses IndexedDB database `annesbase.recovery.v1` with
+separate metadata and byte stores. Metadata and SQLite bytes commit in the same
+transaction. Every document gets a UUID; starting/opening another native file
+creates a separate recovery copy instead of replacing the previous one. Listing
+copies reads metadata without loading all database bytes. There is no automatic
+pruning; inactive copies can be explicitly removed.
+
+Each update and removal compares the expected revision inside its read/write
+transaction. Stale tabs fail without overwriting/deleting a newer version. The
+local session is retained on failure, and the current newer copy can be restored
+after resolving pending edits. This is conflict detection, not live multi-tab
+synchronization or merging. The list refreshes on launch and local storage actions.
+
+`src/storage/autosave.ts` serializes writes for a document and coalesces pending
+snapshots to the newest one while a write is in flight. It exports a consistent
+SQLite image after each committed mutation, on editable-native creation/open,
+and when download acknowledgement changes. An older completion cannot report a
+newer edit as saved. Quota/availability/conflict errors keep an error state until
+a successful retry or restoration. Recovery bytes are limited to 32 MiB.
+
+`databasePane.ts` restores saved files only when requested, validates them with
+the existing SQLite open path, and reconnects autosave to their id/revision. The
+recorded pending-download flag is restored separately from SQLite history, so
+undo remains available and download status is not silently lost. Ordinary,
+legacy and explicitly read-only opens do not autosave. Unfinished form drafts
+are never serialized; they retain their unload guard even if committed rows
+have been saved. A confirmed browser save makes leaving committed rows safe
+without a download prompt, but is not a portable backup.
+
+IndexedDB is scoped to browser profile/origin and can be cleared or evicted.
+This is a latest-state recovery copy, not versioned snapshots, cross-device sync,
+an offline PWA, direct original-file saving or a worker/OPFS SQLite engine.
 
 ## Validation
 

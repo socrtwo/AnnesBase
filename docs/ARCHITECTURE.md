@@ -30,6 +30,9 @@ through DOM text properties rather than HTML interpolation.
 Search Commands, Add All Choices, New, Open/Open Read-Only, Save/Save As (download
 a copy), Close Database, Create Table, New Record, Delete Record and Undo have handlers. Availability predicates disable
 Save and Close without an open database and prevent overlapping file operations.
+Sort Ascending/Descending/Clear, Filter, Apply/Toggle Filter, Clear All Filters and
+Find delegate to the current table's view controls. Availability predicates disable
+view commands without a selected table or while a file operation is in progress.
 Pin, unpin, clear-pins, tab selection and menu selection are local shell controls.
 Unimplemented commands are disabled. The classic menus use
 native disclosure elements; full desktop-style arrow-key navigation and automatic
@@ -82,7 +85,7 @@ the query-only pragma because sql.js resets connection settings on export.
 pages of 100 rows with one lookahead row. Names are quoted, values use
 DOM text nodes, integers are read as BigInt, nulls are marked and blobs show their
 byte count. Text displays are shortened after 2,000 characters without modifying
-stored data. Pages use SQLite's scan order; sorting and filtering are not provided.
+stored data. Table-view sorting and filtering run in SQLite before paging.
 
 Files are loaded into memory with a 32 MiB input limit. This is not a worker/OPFS
 engine, large-file implementation, snapshot system or encryption layer.
@@ -118,6 +121,33 @@ controls. Edits are committed on Save record, not per keystroke. Selection enabl
 Edit/Delete; change history shows the latest 100 entries. Existing-table schema
 changes, foreign-key design, arbitrary SQLite writes, per-record restore and
 as-of views remain planned.
+
+## Table views
+
+`src/engine/tableView.ts` compiles a single column condition, optional literal
+find term and one sort choice into a read-only SELECT. Columns come from
+`PRAGMA table_xinfo` (including visible generated columns). Identifiers are
+catalog-validated and quoted; operators/directions use fixed allowlists and
+all search/filter values are bound parameters. Integer comparisons validate
+the signed 64-bit range and bind decimal strings, avoiding JavaScript rounding.
+
+Text contains/find uses SQLite `instr(lower(CAST(... AS TEXT)), lower(?))`;
+case folding is ASCII-only and wildcard characters are literal. Numeric
+conditions use declared SQLite affinity; untyped columns use text comparisons.
+Blob fields permit null checks and are excluded from Find. General sorting
+retains SQLite's storage-type, collation and null-ordering behavior.
+
+Paging fetches 100 rows plus one lookahead. Default/tie order is the declared
+primary key, including composite keys; tables without one use visible columns.
+This provides repeatable page boundaries without exposing arbitrary SQL. It is
+not a query designer, arbitrary SQL editor or large-data virtual grid.
+
+`src/ui/tableControls.ts` renders the selectors, literal Find input and explicit
+Apply view action. Invalid filters leave the current view intact. Applied view
+changes reset pagination and record selection and respect unfinished editor
+drafts. Editing uses the selected primary-key id, so sorting or a filter that
+hides an edited row cannot redirect the write. View state is not journaled,
+autosaved or written into the database; table changes and restore reset it.
 
 ## Browser autosave and recovery
 
@@ -157,7 +187,9 @@ an offline PWA, direct original-file saving or a worker/OPFS SQLite engine.
 ## Validation
 
 - vitest checks registry behavior, catalog coverage, all menu/ribbon references,
-  preference validation, choice ordering and DOM interactions using jsdom.
+  preference validation, choice ordering, SQLite views, journals, recovery storage
+  and DOM interactions using jsdom. Tests use at most two workers to avoid
+  WebAssembly/jsdom resource contention on smaller runners.
 - Python standard-library tests verify generated SQLite fixtures and damage
   detection; see [../tests/corpus/README.md](../tests/corpus/README.md).
 - `scripts/gen-plan.py --check` validates the planning sources.

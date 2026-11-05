@@ -4,6 +4,8 @@ import { DatabaseSession, MAX_DATABASE_BYTES, PAGE_SIZE, type Cell } from '../en
 import { recordEditor, tableEditor } from './editors';
 import { IndexedDbRecoveryStore, type RecoveryMetadata, type RecoveryStore } from '../storage/recovery';
 import { DocumentAutosave } from '../storage/autosave';
+import { tableControls } from './tableControls';
+import type { TableView } from '../engine/tableView';
 
 export interface DatabaseDependencies {
   load: () => Promise<SqlJsStatic>;
@@ -50,6 +52,10 @@ export function mountDatabasePane(
   let recoveryError = '';
   let listing = 0;
   let recoveryBusy = false;
+  let view: TableView = {};
+  let filterEnabled = true;
+  const effectiveView = () => ({ ...view, filter: filterEnabled ? view.filter : undefined });
+  const resetView = () => { view = {}; filterEnabled = true; };
   const recoveryStore = dependencies.recovery;
   const pane = node('section');
   pane.className = 'database-pane';
@@ -61,7 +67,7 @@ export function mountDatabasePane(
   actions.className = 'database-actions';
   const button = (text: string, action: () => void) => {
     const control = node('button', text);
-    control.addEventListener('click', action);
+    control.addEventListener('click', () => { if (!disposed) action(); });
     actions.append(control);
     return control;
   };
@@ -76,6 +82,7 @@ export function mountDatabasePane(
   navigation.setAttribute('aria-label', 'Database tables');
   const data = node('div');
   data.className = 'datasheet';
+  const tools = node('section'); tools.className = 'table-tools'; tools.setAttribute('aria-label', 'Sort, filter and find');
   const note = node('p', 'Native edits autosave as recovery copies in this browser when storage is available. Unfinished forms are not autosaved. Keep downloaded backups: browser storage can be cleared or evicted. Other SQLite files are read-only. Limit: 32 MiB.');
   note.className = 'database-note';
   const editing = node('section'); editing.className = 'database-editor'; editing.hidden = true;
@@ -101,8 +108,8 @@ export function mountDatabasePane(
   function apply(change: () => void) {
     if (busy) throw new Error('Wait for the database to finish loading.');
     change(); cancelEditing(); selectedRecord = undefined;
-    if (selected && !session!.tables().includes(selected)) { selected = session!.tables()[0]; offset = 0; }
-    if (selected && offset > 0 && !session!.page(selected, offset).rows.length) offset = Math.max(0, offset - PAGE_SIZE);
+    if (selected && !session!.tables().includes(selected)) { selected = session!.tables()[0]; offset = 0; resetView(); }
+    if (selected && offset > 0 && !session!.page(selected, offset, effectiveView()).rows.length) offset = Math.max(0, offset - PAGE_SIZE);
     message.textContent = 'Change recorded in the journal.';
     if (session && autosave) autosave.save(session);
     render();
@@ -121,6 +128,7 @@ export function mountDatabasePane(
     renderRecovery(); changed(session?.name, busy);
   }
   function renderRecovery() {
+    if (disposed) return;
     retry.hidden = autosave?.state.status !== 'error'; retry.disabled = busy;
     if (autosave?.state.status === 'saved') autosaveStatus.textContent = 'Saved in this browser. Download a copy for a portable backup.';
     else if (autosave?.state.status === 'saving') autosaveStatus.textContent = 'Saving a browser recovery copy… Keep this page open until it finishes.';
@@ -178,7 +186,7 @@ export function mountDatabasePane(
     if (draftChanged && !confirmDiscard()) return;
     draftChanged = false;
     showWorkspace();
-    tableEditor(editing, (name, fields) => apply(() => { session!.createTable(name, fields); selected = name; offset = 0; }), cancelEditing);
+    tableEditor(editing, (name, fields) => apply(() => { session!.createTable(name, fields); selected = name; offset = 0; resetView(); }), cancelEditing);
   }
   function editRecord(insert = false) {
     if (!session || !selected || !session.canEditTable(selected) || busy || !insert && !selectedRecord) return;
@@ -197,6 +205,18 @@ export function mountDatabasePane(
     const text = String(value);
     return text.length > 2000 ? text.slice(0, 2000) + '… [display shortened]' : text;
   };
+  function applyView(next: TableView, enabled = filterEnabled) {
+    if (!session || !selected || busy) return;
+    session.page(selected, 0, { ...next, filter: enabled ? next.filter : undefined });
+    if (draftChanged && !confirmDiscard()) return;
+    cancelEditing(); view = next; filterEnabled = enabled; offset = 0; selectedRecord = undefined;
+    render();
+  }
+  function sortView(direction: 'ASC' | 'DESC') {
+    if (!session || !selected) return;
+    const column = tools.querySelector<HTMLSelectElement>('[data-sort-column]')?.value || session.columns(selected)[0]?.name;
+    if (column) applyView({ ...view, sort: { column, direction } });
+  }
   function renderTable() {
     data.replaceChildren();
     if (!session || !selected) {
@@ -204,7 +224,7 @@ export function mountDatabasePane(
       return;
     }
     try {
-      const page = session.page(selected, offset);
+      const page = session.page(selected, offset, effectiveView());
       data.append(node('h3', selected));
       const wrapper = node('div');
       wrapper.className = 'datasheet-scroll';
@@ -217,7 +237,11 @@ export function mountDatabasePane(
       const head = node('thead');
       const header = node('tr');
       if (editable) { const th = node('th', 'Select'); th.scope = 'col'; header.append(th); }
-      for (const column of page.columns) { const th = node('th', column); th.scope = 'col'; header.append(th); }
+      for (const column of page.columns) {
+        const th = node('th', column); th.scope = 'col';
+        if (view.sort?.column === column) th.setAttribute('aria-sort', view.sort.direction === 'ASC' ? 'ascending' : 'descending');
+        header.append(th);
+      }
       head.append(header);
       const body = node('tbody');
       for (const row of page.rows) {
@@ -245,19 +269,20 @@ export function mountDatabasePane(
       const next = node('button', 'Next page');
       next.disabled = !page.hasMore;
       next.addEventListener('click', () => { offset += PAGE_SIZE; selectedRecord = undefined; render(); });
-      const range = page.rows.length ? `Rows ${offset + 1}–${offset + page.rows.length}` : 'No records';
+      const range = page.rows.length ? `Rows ${offset + 1}–${offset + page.rows.length}` : view.search || view.filter && filterEnabled ? 'No matching records' : 'No records';
       pagination.append(previous, node('span', range), next);
       data.append(wrapper, pagination);
     } catch (error) { data.append(node('p', `Cannot read this table: ${error instanceof Error ? error.message : String(error)}`)); }
   }
 
   function render() {
+    if (disposed) return;
     title.textContent = session ? session.name : 'Your database workspace';
     navigation.replaceChildren(node('h3', 'Tables'));
     for (const name of session?.tables() ?? []) {
       const item = node('button', name);
       item.setAttribute('aria-pressed', String(name === selected));
-      item.addEventListener('click', () => { if (draftChanged && !confirmDiscard()) return; cancelEditing(); selectedRecord = undefined; selected = name; offset = 0; render(); });
+      item.addEventListener('click', () => { if (draftChanged && !confirmDiscard()) return; cancelEditing(); selectedRecord = undefined; selected = name; offset = 0; resetView(); render(); });
       navigation.append(item);
     }
     for (const control of [newButton, sampleButton, openButton]) control.disabled = busy;
@@ -271,11 +296,18 @@ export function mountDatabasePane(
     history.append(entries.length ? list : node('p', 'No changes recorded.'));
     pane.setAttribute('aria-busy', String(busy));
     editing.inert = busy;
+    tools.inert = busy;
+    tools.hidden = !session || !selected;
+    if (session && selected) {
+      try { tableControls(tools, session.columns(selected), view, filterEnabled, applyView); }
+      catch (error) { tools.textContent = `Cannot inspect columns: ${error instanceof Error ? error.message : String(error)}`; }
+    } else tools.replaceChildren();
     renderTable();
     renderRecovery();
     changed(session?.name, busy);
   }
   function syncActions() {
+    if (disposed) return;
     createButton.disabled = busy || !session?.editable;
     const canEdit = !!session && !!selected && session.canEditTable(selected);
     addButton.disabled = busy || !canEdit;
@@ -300,6 +332,7 @@ export function mountDatabasePane(
       candidate = undefined;
       selected = tables[0];
       offset = 0;
+      resetView();
       connectAutosave(recovered?.());
       message.textContent = `${session.name} is open ${session.editable ? 'for journaled editing' : 'read-only'}. ${tables.length} user tables.`;
       showWorkspace();
@@ -325,7 +358,7 @@ export function mountDatabasePane(
   function close() {
     if (busy || !discard()) return;
     showWorkspace();
-    session?.close(); session = undefined; autosave = undefined; selected = undefined; offset = 0;
+    session?.close(); session = undefined; autosave = undefined; selected = undefined; offset = 0; resetView();
     cancelEditing(); selectedRecord = undefined;
     message.textContent = 'Database closed. Original files were not changed.';
     render();
@@ -360,12 +393,19 @@ export function mountDatabasePane(
     ['record.new', () => report(() => editRecord(true)), () => !!session && !!selected && session.canEditTable(selected) && !busy],
     ['record.delete', () => deleteButton.click(), () => !deleteButton.disabled],
     ['edit.undo', () => undoButton.click(), () => !!session?.canUndo() && !busy],
+    ['sort.ascending', () => report(() => sortView('ASC')), () => !!session && !!selected && !busy],
+    ['sort.descending', () => report(() => sortView('DESC')), () => !!session && !!selected && !busy],
+    ['sort.clear', () => report(() => applyView({ ...view, sort: undefined })), () => !!view.sort && !busy],
+    ['filter.menu', () => { showWorkspace(); tools.querySelector<HTMLSelectElement>('[data-filter-column]')?.focus(); }, () => !!session && !!selected && !busy],
+    ['filter.toggle', () => report(() => applyView(view, !filterEnabled)), () => !!view.filter && !busy],
+    ['filter.clearAll', () => report(() => applyView({ ...view, filter: undefined, search: undefined }, true)), () => (!!view.filter || !!view.search) && !busy],
+    ['edit.find', () => { showWorkspace(); tools.querySelector<HTMLInputElement>('input[type=search]')?.focus(); }, () => !!session && !!selected && !busy],
   ] as const) registry.bind(id, handler, enabled);
   if (recoveryStore) registry.bind('file.openRecent', () => { showWorkspace(); recovery.scrollIntoView?.({ block: 'start' }); recoveryHeading.focus(); }, () => recoveryEntries.length > 0 && !busy);
   grid.append(navigation, data);
-  pane.append(title, message, actions, input, recovery, editing, grid, history, note);
+  pane.append(title, message, actions, input, recovery, editing, tools, grid, history, note);
   container.append(pane);
   render();
   void refreshRecovery();
-  return { openFile, dispose: () => { disposed = true; window.removeEventListener('beforeunload', beforeUnload); session?.close(); } };
+  return { openFile, dispose: () => { disposed = true; window.removeEventListener('beforeunload', beforeUnload); session?.close(); session = undefined; autosave = undefined; } };
 }

@@ -33,7 +33,8 @@
 - Navigation pane and Database window; Table Datasheet and Design views with every field type, properties, validation, indexes, lookups; record commands, sort and filter (selection, form, advanced), find and replace, totals row.
   - [x] Table navigation and read-only datasheet pages, preserving integer precision and displaying nulls/blobs safely.
   - [x] Basic table creation (Text, Whole number, Decimal number, non-null fields, automatic integer primary key), record insert/update/delete, null controls and sequential undo; pending-edit and draft guards.
-  - [ ] Existing-table schema design, remaining field types, validation/index/lookup designers, virtualized large-data grids, sort/filter and the remaining record commands.
+  - [x] Single-column sort, typed column filters, NULL conditions, literal find across text/numbers, filter toggle/clear, stable paged ordering and shared command bindings; works on read-only SQLite too.
+  - [ ] Existing-table schema design, remaining field types, validation/index/lookup designers, virtualized large-data grids, multi-column/advanced sort, multi-condition/saved filters and the remaining record commands.
 - Undo Delete, Record History, Show Table as of (the journal's first uses).
   - [x] Global Undo restores deletions and previous row values; the latest 100 journal entries are visible in Change history.
   - [ ] Dedicated per-record history/restore, as-of table views and the full Undo Delete workflow.

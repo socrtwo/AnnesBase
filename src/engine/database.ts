@@ -1,5 +1,6 @@
 import type { Database, SqlJsStatic } from 'sql.js';
 import { NativeJournal, type Field, type RecordValues } from './journal';
+import { columnKind, compileView, type TableColumn, type TableView } from './tableView';
 
 export const MAX_DATABASE_BYTES = 32 * 1024 * 1024;
 export const PAGE_SIZE = 100;
@@ -57,14 +58,21 @@ export class DatabaseSession {
     return (result[0]?.values ?? []).map(row => String(row[0])).filter(name => !this.isNative || !['qb_meta', 'qb_objects', 'qb_journal'].includes(name));
   }
 
-  page(table: string, offset = 0): TablePage {
+  columns(table: string): TableColumn[] {
     this.assertOpen();
     if (!this.tables().includes(table)) throw new Error('Choose a table from the navigation pane.');
+    const result = this.db.exec(`PRAGMA table_xinfo(${quote(table)})`);
+    return (result[0]?.values ?? []).filter(row => row[6] !== 1).map(row => ({ name: String(row[1]), type: String(row[2]), primaryKey: Number(row[5]), kind: columnKind(String(row[2])) }));
+  }
+
+  page(table: string, offset = 0, view: TableView = {}): TablePage {
+    const columns = this.columns(table);
     if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('Invalid page offset.');
+    const query = compileView(columns, view);
     // Read one extra row to detect a next page without an expensive full-table count.
-    const statement = this.db.prepare(`SELECT * FROM ${quote(table)} LIMIT ? OFFSET ?`);
+    const statement = this.db.prepare(`SELECT * FROM ${quote(table)}${query.where}${query.order} LIMIT ? OFFSET ?`);
     try {
-      statement.bind([PAGE_SIZE + 1, offset]);
+      statement.bind([...query.params, PAGE_SIZE + 1, offset]);
       const columns = statement.getColumnNames();
       const rows: Cell[][] = [];
       // sql.js supports useBigInt; its separate DefinitelyTyped package omits this overload.

@@ -170,8 +170,13 @@ are not provided yet.
 
 ## Table views
 
-`src/engine/tableView.ts` compiles a single column condition, optional literal
-find term and one sort choice into a read-only SELECT. Columns come from
+`src/engine/tableView.ts` compiles a flat group of up to eight typed conditions, an optional
+literal find term and up to five sort priorities into a read-only SELECT. All/Any
+map to fixed AND/OR operators inside parentheses; Find always intersects the
+complete group. The original single-sort/single-filter API remains supported,
+but mixing old and new forms is rejected. Duplicate sort columns, excessive
+levels/conditions, unknown columns and invalid group operators are rejected.
+Columns come from
 `PRAGMA table_xinfo` (including visible generated columns). Identifiers are
 catalog-validated and quoted; operators/directions use fixed allowlists and
 all search/filter values are bound parameters. Integer comparisons validate
@@ -188,8 +193,14 @@ primary key, including composite keys; tables without one use visible columns.
 This provides repeatable page boundaries without exposing arbitrary SQL. It is
 not a query designer, arbitrary SQL editor or large-data virtual grid.
 
-`src/ui/tableControls.ts` renders the selectors, literal Find input and explicit
-Apply view action. Invalid filters leave the current view intact. Applied view
+`src/ui/tableControls.ts` renders dynamic sort/condition rows, All/Any matching,
+literal Find and an explicit Apply view action. Sort levels can be reordered or
+removed; filter conditions can be removed individually. The advanced sort and
+filter commands focus these controls. Ascending/Descending modifies the first
+sort priority while retaining applied secondary levels, Remove Sort clears every key, and
+the filter toggle/clear commands act on the entire group. All conditions are
+validated even when the group is disabled. Nested groups, saved filters and
+custom value-list sorting remain future work. Invalid filters leave the current view intact. Applied view
 changes reset pagination and record selection and respect unfinished editor
 drafts. Editing uses the selected primary-key id, so sorting or a filter that
 hides an edited row cannot redirect the write. View state is not journaled,

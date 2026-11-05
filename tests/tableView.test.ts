@@ -98,3 +98,41 @@ describe('table sort/filter/find', () => {
     expect(reopened.page('Customers').rows).toHaveLength(3); expect(reopened.history()).toEqual([]);
   });
 });
+
+
+describe('multiple sort levels and grouped filters', () => {
+  it('orders by every priority then adds stable primary-key ties across pages', () => {
+    const session = fixture();
+    expect(session.page('composite', 0, { sorts: [{ column: 'a', direction: 'DESC' }, { column: 'b', direction: 'ASC' }] }).rows).toEqual([[2n, 'a'], [1n, 'a'], [1n, 'z']]);
+    const view: TableView = { sorts: [{ column: 'score', direction: 'DESC' }, { column: 'id', direction: 'DESC' }] };
+    const rows = [0, 100, 200].flatMap(offset => session.page('pages', offset, view).rows);
+    expect(rows).toHaveLength(235); expect(new Set(rows.map(row => row[0])).size).toBe(235);
+    expect(rows).toEqual([...rows].sort((a, b) => Number(b[1]) - Number(a[1]) || Number(b[0]) - Number(a[0])));
+  });
+  it('groups OR conditions before combining Find, including NULL/blob and exact numeric comparisons', () => {
+    const session = fixture();
+    expect(ids(session, { filters: { match: 'all', conditions: [
+      { column: 'quantity', operator: 'gte', value: '2' }, { column: 'price', operator: 'gte', value: '2e1' },
+    ] } })).toEqual([2n, 5n]);
+    const any: TableView = { filters: { match: 'any', conditions: [{ column: 'payload', operator: 'isNotNull' }, { column: 'label', operator: 'isNull' }] } };
+    expect(ids(session, any)).toEqual([2n, 3n]); expect(ids(session, { ...any, search: 'alpha' })).toEqual([2n]);
+    expect(ids(session, { filters: { match: 'any', conditions: [{ column: 'label', operator: 'isNull' }, { column: 'label', operator: 'equals', value: '' }] } })).toEqual([3n, 4n]);
+    expect(ids(session, { filters: { match: 'all', conditions: [{ column: 'quantity', operator: 'equals', value: '+9223372036854775807' }, { column: 'label', operator: 'contains', value: 'café' }] } })).toEqual([5n]);
+    expect(ids(session, { filters: { match: 'any', conditions: [{ column: 'id', operator: 'equals', value: '1' }, { column: 'label', operator: 'contains', value: "'); DROP TABLE data; --" }] } })).toEqual([1n]);
+    expect(session.hasChanges).toBe(false); expect(session.tables()).toContain('data');
+  });
+  it('rejects ambiguous, excessive, duplicate or invalid conditions without changing any records', () => {
+    const session = fixture(); const sort = { column: 'id', direction: 'ASC' as const }; const filter = { column: 'id', operator: 'equals' as const, value: '1' };
+    const invalid: TableView[] = [
+      { sort, sorts: [sort] }, { filter, filters: { match: 'all', conditions: [filter] } },
+      { sorts: [sort, sort] }, { sorts: Array(6).fill(sort) },
+      { filters: { match: 'all', conditions: Array(9).fill(filter) } }, { filters: { match: 'all', conditions: [] } },
+      { filters: { match: 'OR 1=1' as 'any', conditions: [filter] } },
+      { filters: { match: 'any', conditions: [filter, { ...filter, column: 'missing' }] } },
+      { filters: { match: 'all', conditions: [filter, { ...filter, value: '1.5' }] } },
+      { sorts: [sort, { column: 'label', direction: 'ASC; DROP TABLE data' as 'ASC' }] },
+    ];
+    for (const view of invalid) expect(() => session.page('data', 0, view)).toThrow();
+    expect(session.page('data').rows).toHaveLength(5); expect(session.hasChanges).toBe(false);
+  });
+});

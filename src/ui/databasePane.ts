@@ -5,7 +5,7 @@ import { recordEditor, tableEditor } from './editors';
 import { IndexedDbRecoveryStore, type RecoveryMetadata, type RecoveryStore } from '../storage/recovery';
 import { DocumentAutosave } from '../storage/autosave';
 import { tableControls } from './tableControls';
-import type { TableView } from '../engine/tableView';
+import { sortLevels, filterConditions, type TableView } from '../engine/tableView';
 import { showRecordHistory } from './recordHistory';
 import { IndexedDbSnapshotStore, type SnapshotStore } from '../storage/snapshots';
 import type { PreferenceStorage } from '../prefs';
@@ -65,7 +65,7 @@ export function mountDatabasePane(
   let recoveryBusy = false;
   let view: TableView = {};
   let filterEnabled = true;
-  const effectiveView = () => ({ ...view, filter: filterEnabled ? view.filter : undefined });
+  const effectiveView = () => ({ ...view, filter: filterEnabled ? view.filter : undefined, filters: filterEnabled ? view.filters : undefined });
   const resetView = () => { view = {}; filterEnabled = true; };
   const recoveryStore = dependencies.recovery;
   const pane = node('section');
@@ -233,7 +233,7 @@ export function mountDatabasePane(
   };
   function applyView(next: TableView, enabled = filterEnabled) {
     if (!session || !selected || busy) return;
-    session.page(selected, 0, { ...next, filter: enabled ? next.filter : undefined });
+    session.page(selected, 0, next);
     if (draftChanged && !confirmDiscard()) return;
     cancelEditing(); closeHistory(); view = next; filterEnabled = enabled; offset = 0; selectedRecord = undefined;
     render();
@@ -241,7 +241,7 @@ export function mountDatabasePane(
   function sortView(direction: 'ASC' | 'DESC') {
     if (!session || !selected) return;
     const column = tools.querySelector<HTMLSelectElement>('[data-sort-column]')?.value || session.columns(selected)[0]?.name;
-    if (column) applyView({ ...view, sort: { column, direction } });
+    if (column) applyView({ ...view, sort: undefined, sorts: [{ column, direction }, ...sortLevels(view).slice(1).filter(level => level.column !== column)] });
   }
   function renderTable() {
     data.replaceChildren();
@@ -265,7 +265,9 @@ export function mountDatabasePane(
       if (editable) { const th = node('th', 'Select'); th.scope = 'col'; header.append(th); }
       for (const column of page.columns) {
         const th = node('th', column); th.scope = 'col';
-        if (view.sort?.column === column) th.setAttribute('aria-sort', view.sort.direction === 'ASC' ? 'ascending' : 'descending');
+        const levels = sortLevels(view); const index = levels.findIndex(level => level.column === column);
+        if (index === 0) th.setAttribute('aria-sort', levels[0].direction === 'ASC' ? 'ascending' : 'descending');
+        if (index >= 0) th.setAttribute('aria-label', `${column}, sort priority ${index + 1}, ${levels[index].direction === 'ASC' ? 'ascending' : 'descending'}`);
         header.append(th);
       }
       head.append(header);
@@ -295,7 +297,7 @@ export function mountDatabasePane(
       const next = node('button', 'Next page');
       next.disabled = !page.hasMore;
       next.addEventListener('click', () => { offset += PAGE_SIZE; selectedRecord = undefined; render(); });
-      const range = page.rows.length ? `Rows ${offset + 1}–${offset + page.rows.length}` : view.search || view.filter && filterEnabled ? 'No matching records' : 'No records';
+      const range = page.rows.length ? `Rows ${offset + 1}–${offset + page.rows.length}` : view.search || filterConditions(view).length && filterEnabled ? 'No matching records' : 'No records';
       pagination.append(previous, node('span', range), next);
       data.append(wrapper, pagination);
     } catch (error) { data.append(node('p', `Cannot read this table: ${error instanceof Error ? error.message : String(error)}`)); }
@@ -443,10 +445,12 @@ export function mountDatabasePane(
     ['edit.undo', () => undoButton.click(), () => !!session?.canUndo() && !busy],
     ['sort.ascending', () => report(() => sortView('ASC')), () => !!session && !!selected && !busy],
     ['sort.descending', () => report(() => sortView('DESC')), () => !!session && !!selected && !busy],
-    ['sort.clear', () => report(() => applyView({ ...view, sort: undefined })), () => !!view.sort && !busy],
+    ['sort.clear', () => report(() => applyView({ ...view, sort: undefined, sorts: undefined })), () => sortLevels(view).length > 0 && !busy],
+    ['sort.advanced', () => { showWorkspace(); tools.querySelector<HTMLSelectElement>('[data-sort-column]')?.focus(); }, () => !!session && !!selected && !busy],
+    ['filter.advanced', () => { showWorkspace(); tools.querySelector<HTMLSelectElement>('[data-filter-column]')?.focus(); }, () => !!session && !!selected && !busy],
     ['filter.menu', () => { showWorkspace(); tools.querySelector<HTMLSelectElement>('[data-filter-column]')?.focus(); }, () => !!session && !!selected && !busy],
-    ['filter.toggle', () => report(() => applyView(view, !filterEnabled)), () => !!view.filter && !busy],
-    ['filter.clearAll', () => report(() => applyView({ ...view, filter: undefined, search: undefined }, true)), () => (!!view.filter || !!view.search) && !busy],
+    ['filter.toggle', () => report(() => applyView(view, !filterEnabled)), () => filterConditions(view).length > 0 && !busy],
+    ['filter.clearAll', () => report(() => applyView({ ...view, filter: undefined, filters: undefined, search: undefined }, true)), () => (filterConditions(view).length > 0 || !!view.search) && !busy],
     ['edit.find', () => { showWorkspace(); tools.querySelector<HTMLInputElement>('input[type=search]')?.focus(); }, () => !!session && !!selected && !busy],
     ['record.history', () => report(() => openRecordHistory()), () => !!session && !!selected && session.canEditTable(selected) && !busy],
   ] as const) registry.bind(id, handler, enabled);

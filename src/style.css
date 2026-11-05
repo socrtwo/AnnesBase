@@ -34,6 +34,8 @@ label { font-size: 13px; font-weight: 600; }
 .classic-options { padding: 8px 28px; border-bottom: 1px solid #e5e5e5; }
 .classic-options > summary { width: fit-content; color: #616161; font-size: 12px; }
 .classic-options > label { display: block; margin-top: 12px; }
+.menu-help { color: #616161; font-size: 12px; max-width: 70ch; }
+.classic-menus summary:focus-visible { outline: 2px solid #a62d64; outline-offset: -2px; }
 .classic-menus { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
 .classic-menus > details { position: relative; }
 summary { padding: 8px; }

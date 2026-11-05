@@ -34,9 +34,20 @@ Sort Ascending/Descending/Clear, Filter, Apply/Toggle Filter, Clear All Filters 
 Find delegate to the current table's view controls. Availability predicates disable
 view commands without a selected table or while a file operation is in progress.
 Pin, unpin, clear-pins, tab selection and menu selection are local shell controls.
-Unimplemented commands are disabled. The classic menus use
-native disclosure elements; full desktop-style arrow-key navigation and automatic
-classic-menu dismissal are still future work. Modern ribbon tabs support Left,
+Unimplemented commands are disabled. `src/ui/classicMenus.ts` renders all layouts
+with native disclosure elements and buttons, keeping their browser accessibility
+semantics. Arrow keys navigate menu levels and skip disabled actions, Home/End
+select first/last choices, and type-ahead finds/cycles names. Enter/Space use
+native activation; Escape/Left close levels, while Tab returns to the menu heading
+before native focus traversal. Only one sibling branch opens at a time. Commands,
+outside pointer actions and focus elsewhere close the menus without overriding
+focus explicitly moved by an action. Menus/Menu Layout reveal and focus the
+chooser through shared command bindings. Original historical key-map fidelity
+and custom menu editing remain unverified/unimplemented respectively.
+
+The menu controller removes its document listeners on disposal. Remounting a
+shell disposes the previous menu and database controllers (including unload
+guards) before replacing the DOM, preventing duplicate document handlers. Modern ribbon tabs support Left,
 Right, Home and End keys with selected-tab state and associated panel labels.
 
 `src/ui/backstage.ts` renders the Word-style File screen with a left navigation

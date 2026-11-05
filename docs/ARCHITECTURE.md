@@ -9,7 +9,7 @@ with a transaction journal and undo, a read-only SQLite viewer and synthetic fix
 Vite bundles the TypeScript entry in `src/main.ts` and styles in `src/style.css`.
 The application uses browser DOM APIs with no UI framework. `npm run dev` serves
 the preview; `npm run build` type-checks and produces `dist/`. Node.js 24 LTS is
-the recommended development version. The web build is not yet an offline PWA.
+the recommended development version. The production web build includes an installable manifest and an offline service worker; the development server never registers it.
 
 ## Commands and views
 
@@ -227,8 +227,9 @@ have been saved. A confirmed browser save makes leaving committed rows safe
 without a download prompt, but is not a portable backup.
 
 IndexedDB is scoped to browser profile/origin and can be cleared or evicted.
-This is a latest-state recovery copy, not versioned snapshots, cross-device sync,
-an offline PWA, direct original-file saving or a worker/OPFS SQLite engine.
+This store provides latest-state recovery; separate stores provide versioned
+snapshots and offline app files. It does not sync devices, save directly to the
+original file or provide a worker/OPFS SQLite engine.
 
 ## Versioned browser snapshots
 
@@ -263,6 +264,50 @@ preferences; unavailable localStorage falls back to session-only settings with a
 warning. Each SQLite image is limited to 32 MiB. Snapshots remain browser/origin
 storage and are not embedded in the native file. No timed/on-close snapshots,
 age retention, sync, encryption or worker/OPFS snapshots are implemented yet.
+
+## Installable offline web build
+
+`vite.config.ts` uses a relative base so production files can be served at the
+origin root or a subdirectory. `public/manifest.webmanifest` declares a scoped,
+standalone app with the existing branding rasterized at 192 and 512 pixels;
+`resources/install-icons.json` records its source hash and provenance. Install
+availability depends on browser/platform support and secure hosting.
+
+`scripts/offline-build.ts` hashes the final build output (HTML, CSS, all JS including the
+lazy SQLite loader, WASM, public manifest/icons and license). It emits `sw.js`
+from `src/pwa/service-worker.js`, with a content version covering both the file
+manifest and worker template. `scripts/check-offline.mjs` runs after every build
+to verify file digests, SQLite inclusion, relative paths and installation assets.
+There are no runtime CDN dependencies or extra service-worker packages.
+
+Installation fetches every file with SHA-256 Subresource Integrity, no HTTP cache
+and no redirects. Partial downloads, mixed deployments and HTML fallbacks for
+missing files fail installation and discard only the new incomplete cache.
+There is no `skipWaiting` or automatic reload. A waiting update activates after
+all old clients close, then removes older app caches only for its exact scope.
+Other scopes/apps and IndexedDB databases are untouched. Servers should serve
+`sw.js` with revalidation/no-cache and upload a complete build together; old
+hashed assets should remain available while clients finish updating.
+
+Fetch interception is restricted to GET requests for the exact precache allowlist
+and the app's root/index navigation (query strings on the entry are supported).
+Known files use cache-first responses. Other navigations, APIs, database files,
+external requests and non-GET requests retain ordinary network behavior. No user
+database bytes enter the service-worker cache or background upload queue.
+
+`src/pwa/offline.ts` registers only in production on a secure origin, displays
+verified cache readiness via MessageChannel, tracks online/offline state, handles
+a user-triggered browser installation prompt and exposes explicit update checks.
+Waiting updates explain that all app windows must close; drafts are never
+silently reloaded. A missing-cache retry refetches integrity-checked files into
+the active version without deleting good files on failure. If that old version
+is no longer available on the server, it cannot be fabricated: the user must
+complete the new update online. Status queries time out visibly, and listeners
+are removed on disposal/HMR. Browser eviction and first-ever offline visits
+remain practical limits; installing does not make user storage a portable backup.
+
+Native packaging, public deployment, cross-device sync and background database
+uploads are not implemented by this feature.
 
 ## Validation
 

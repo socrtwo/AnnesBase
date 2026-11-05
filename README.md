@@ -4,7 +4,7 @@
 
 An original, open-source desktop database for Android, iOS, Windows, macOS, Linux, ChromeOS and the web, in the tradition of Microsoft Access: tables, queries, forms, reports, macros and code in one file, for people who are not database administrators. Its goal is the same as the rest of the Anne's Office suite: **no missing commands**. Anne's Base gathers the commands of Access (including features Access has retired), of the classic database programs (dBASE, FoxPro and Visual FoxPro, Clipper, Paradox, FileMaker, Lotus Approach, Works, Q&A, R:BASE, DataEase, Alpha Four, HyperCard), of the open-source and server tools (LibreOffice Base, Kexi, SQLite, PostgreSQL, MySQL, SQL Server Management Studio, DBeaver, DuckDB) and of the web databases (Airtable, Notion, Quickbase, Power Apps), adds ideas of its own, and has an **AI** tab and menu for asking questions of your data, designing databases, writing queries and code, cleaning data and diagnosing damage. Every feature is a command, and every command can be put on the Quick Access Bar, on your own tab, in any classic menu layout, on a keyboard shortcut, in a macro, and found with command search. When a database is damaged, Anne's Base shows what it can recover instead of refusing to open it.
 
-> **Status: early M1 database editor.** Native `.qbase` files support table creation, adding/editing/deleting records, journaled history, selective record restore, sequential undo, browser autosave/restore and versioned snapshots. Other SQLite files open read-only. The browser app includes a sample database, command search, Word-style File menus, ribbon groups, classic menus and Quick Access pinning. Queries, damaged-file recovery and AI are not implemented. No platform releases have been published. The documents below describe the intended application; see [CONTRIBUTING.md](CONTRIBUTING.md).
+> **Status: early M1 database editor.** Native `.qbase` files support table creation, adding/editing/deleting records, journaled history, selective record restore, sequential undo, browser autosave/restore and versioned snapshots. Other SQLite files open read-only. Production builds support installation and offline editing after the initial download. The browser app includes a sample database, command search, Word-style File menus, ribbon groups, classic menus and Quick Access pinning. Queries, damaged-file recovery and AI are not implemented. No platform releases have been published. The documents below describe the intended application; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Run the preview
 
@@ -49,7 +49,17 @@ python3 scripts/gen-plan.py --check
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code that exists today. Capacitor, Electron, PWA/offline support, worker/OPFS storage and broader journal features remain upcoming M1 work.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code that exists today. Capacitor, Electron, worker/OPFS storage and broader journal features remain upcoming M1 work.
+
+## Install and use offline
+
+The **production web build** includes an installable manifest and a service worker. Serve `dist/` over HTTPS or localhost (for example, `npm run build` then `npm run preview`). Open it online once and wait for **Offline ready** at the bottom of the app. The complete editor, lazy code and SQLite WASM are saved together with integrity checks; then the same address can reopen and edit databases without a connection. The development server does not register a service worker. Installing does not provide a public hosting address or a native APK.
+
+Use **Install app** when your browser offers it, or its **Install app / Add to Home Screen** menu. Availability depends on the browser and platform; installation is optional for offline use. HTTPS or localhost is required. A Termux server addressed as `localhost` qualifies, while a plain HTTP LAN address does not. Hosting under a subdirectory is supported; the manifest, worker and cache stay within that app address.
+
+**Check for app updates** downloads a complete new version before offering it. The open editor never reloads automatically. When **App update ready** appears, save or cancel your forms, wait for browser saves or download a copy, then close **all** Anne's Base windows/tabs and reopen. A failed update leaves the previous offline version available. If offline files are missing, reconnect and use **Retry offline setup**. A newer deployment can prevent repair of an older version; in that case close all app windows and reopen online to complete its update.
+
+Offline app files are separate from IndexedDB recovery copies and snapshots. Updating the app does not delete those databases. Storage still belongs to this browser profile and site address (including the port); changing the address or profile does not transfer your data. Clearing browser storage can remove offline files and databases. Keep downloaded backups. No cross-device synchronization, background database uploads or native platform packaging is included.
 
 ## The plan in brief
 

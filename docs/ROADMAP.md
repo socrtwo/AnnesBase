@@ -1,6 +1,6 @@
 # Roadmap
 
-> **In progress: early M1 native editor.** The browser shell supports native table creation, record editing, transactional history, sequential undo and browser autosave/restore, plus read-only SQLite browsing. Worker/OPFS storage, versioned snapshots, full field design and platform packaging remain unfinished. Milestones are ordered by dependency, not by date. The release goal for each milestone from M1 on is a tagged prerelease built for every platform; that workflow is not implemented yet. Command ids refer to [COMMANDS-PLAN.md](COMMANDS-PLAN.md).
+> **In progress: early M1 native editor.** The browser shell supports native table creation, record editing, transactional history, sequential undo and browser autosave/restore, plus read-only SQLite browsing. Worker/OPFS storage, full field design and platform packaging remain unfinished. Milestones are ordered by dependency, not by date. The release goal for each milestone from M1 on is a tagged prerelease built for every platform; that workflow is not implemented yet. Command ids refer to [COMMANDS-PLAN.md](COMMANDS-PLAN.md).
 
 ## M0 — Planning (this repository)
 
@@ -30,7 +30,8 @@
   - [x] Experimental `1-preview` managed-table catalog and transactional before/after journal; sequential undo survives download/reopen. Ordinary/old/unsupported database schemas remain read-only.
   - [x] `2-preview` selective-restore events, no automatic record-id reuse, stale-preview/journal-consistency checks and transactional upgrade of supported `1-preview` files on first selective restore.
   - [x] IndexedDB recovery copies for each editable native database, atomic metadata/byte writes, reload restoration with undo history, serialized/coalesced autosaves, stale-tab revision checks and visible storage-error retry.
-  - [ ] Worker/OPFS and platform storage, finalized object catalog, transaction grouping across multiple operations, versioned snapshots and encryption.
+  - [x] Versioned IndexedDB snapshots: labeled pinned manual versions, opt-in before-change captures, per-document automatic retention, atomic pruning, checksum verification, copy restore/download and shared command bindings.
+  - [ ] Worker/OPFS and platform storage, finalized object catalog, transaction grouping across multiple operations, scheduled snapshots/age retention and encryption.
 - Navigation pane and Database window; Table Datasheet and Design views with every field type, properties, validation, indexes, lookups; record commands, sort and filter (selection, form, advanced), find and replace, totals row.
   - [x] Table navigation and read-only datasheet pages, preserving integer precision and displaying nulls/blobs safely.
   - [x] Basic table creation (Text, Whole number, Decimal number, non-null fields, automatic integer primary key), record insert/update/delete, null controls and sequential undo; pending-edit and draft guards.

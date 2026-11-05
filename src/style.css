@@ -167,3 +167,8 @@ main > p { font-size: 12px; }
   .table-view-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .backstage-content p { font-size: 13px; }
 }
+
+.browser-snapshots { margin: 20px 0; padding: 16px; background: #f7f4f5; border: 1px solid #e4d6dc; border-radius: 6px; }
+.browser-snapshots > input { max-width: 100%; margin: 8px; }
+.browser-snapshots > label { display: block; margin: 10px 0; }
+.browser-snapshots [role=alert] { color: #a11a38; overflow-wrap: anywhere; }

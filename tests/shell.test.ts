@@ -76,7 +76,7 @@ describe('application shell', () => {
       button.click();
       expect(button.getAttribute('aria-current')).toBe('page');
       for (const action of backstage.querySelectorAll<HTMLButtonElement>('.file-actions button')) {
-        expect(action.disabled).toBe(!['file.new', 'file.open', 'file.openReadOnly'].includes(action.dataset.command!));
+        expect(action.disabled).toBe(!['file.new', 'file.open', 'file.openReadOnly', 'file.snapshots'].includes(action.dataset.command!));
       }
     }
     backstage.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));

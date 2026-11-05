@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { IndexedDbSnapshotStore, type SnapshotStore } from '../src/storage/snapshots';
 import initSqlJs, { type SqlJsStatic } from 'sql.js';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createRegistry } from '../src/commands/registry';
@@ -15,14 +17,14 @@ beforeAll(async () => {
 });
 afterEach(() => { cleanups.splice(0).forEach(cleanup => cleanup()); document.body.replaceChildren(); });
 
-function setup(load = async () => sqlite, recovery?: RecoveryStore) {
+function setup(load = async () => sqlite, recovery?: RecoveryStore, snapshots?: SnapshotStore) {
   const root = document.createElement('div');
   document.body.append(root);
   const registry = createRegistry();
   const download = vi.fn();
   const confirmDiscard = vi.fn(() => true);
   const changed = vi.fn();
-  const pane = mountDatabasePane(root, registry, changed, vi.fn(), { load, download, confirmDiscard, recovery });
+  const pane = mountDatabasePane(root, registry, changed, vi.fn(), { load, download, confirmDiscard, recovery, snapshots });
   cleanups.push(pane.dispose);
   const button = (label: string) => [...root.querySelectorAll('button')].find(button => button.textContent === label)!;
   return { root, registry, pane, download, changed, button, confirmDiscard };
@@ -365,5 +367,66 @@ describe('database workspace', () => {
     const native = DatabaseSession.create(sqlite, true); const bytes = native.exportCopy(); native.close();
     await pane.openFile(fileFrom(bytes, 'readonly.qbase'), true);
     expect(registry.isAvailable('record.history')).toBe(false); expect(button('Record history').disabled).toBe(true);
+  });
+});
+
+
+describe('snapshot workspace', () => {
+  const snapshots = () => new IndexedDbSnapshotStore(() => new IDBFactory(), 'ui', async bytes => createHash('sha256').update(new Uint8Array(bytes)).digest('hex'));
+  it('pins, downloads and restores a journaled version as a new independent recovery copy', async () => {
+    const store = snapshots(); const recovery = new IndexedDbRecoveryStore(() => new IDBFactory());
+    const { root, button, download, registry } = setup(undefined, recovery, store);
+    button('Try sample database').click();
+    await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Sample.qbase'));
+    button('Create table').click(); root.querySelector<HTMLFormElement>('.database-editor form')!.requestSubmit();
+    button('Snapshots').click(); button('Create snapshot').click();
+    await vi.waitFor(async () => expect(await store.list()).toHaveLength(1));
+    await vi.waitFor(() => expect(button('Download snapshot')).toBeDefined());
+    button('Download snapshot').click();
+    await vi.waitFor(() => expect(download).toHaveBeenCalledOnce());
+    const saved = DatabaseSession.open(sqlite, download.mock.calls[0][0], 'download.qbase');
+    expect(saved.tables()).toContain('Table1'); expect(saved.canUndo()).toBe(true); saved.close();
+    await vi.waitFor(() => expect(button('Restore as new copy').disabled).toBe(false));
+    button('New blank database').click();
+    await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Untitled.qbase'));
+    const checkboxes = root.querySelectorAll<HTMLInputElement>('.browser-snapshots input[type=checkbox]');
+    checkboxes[1].click();
+    await vi.waitFor(() => expect(button('Restore as new copy')).toBeDefined());
+    button('Restore as new copy').click();
+    await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Sample-snapshot copy.qbase'));
+    expect(root.textContent).toContain('Table1'); expect(registry.isAvailable('edit.undo')).toBe(true);
+    await vi.waitFor(async () => expect(await recovery.list()).toHaveLength(3));
+    expect(new Set((await recovery.list()).map(item => item.id)).size).toBe(3);
+    registry.execute('edit.undo'); expect(root.querySelector('nav[aria-label="Database tables"]')?.textContent).not.toContain('Table1');
+    const snapshot = await store.read((await store.list())[0].id);
+    const original = DatabaseSession.open(sqlite, new Uint8Array(snapshot.bytes), snapshot.name);
+    expect(original.tables()).toContain('Table1'); original.close();
+  });
+  it('captures before changes only when opted in, excludes drafts and honors cancelled restores', async () => {
+    const store = snapshots(); const { root, button, confirmDiscard } = setup(undefined, undefined, store);
+    button('Try sample database').click(); await vi.waitFor(() => expect(button('Create table').disabled).toBe(false));
+    expect(await store.list()).toHaveLength(0);
+    button('Snapshots').click(); root.querySelector<HTMLInputElement>('.browser-snapshots input[type=checkbox]')!.click();
+    button('Create table').click();
+    const field = root.querySelector<HTMLInputElement>('.database-editor input')!; field.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(button('Create snapshot').disabled).toBe(true); expect(await store.list()).toHaveLength(0);
+    root.querySelector<HTMLFormElement>('.database-editor form')!.requestSubmit();
+    await vi.waitFor(async () => expect(await store.list()).toHaveLength(1));
+    const snapshot = await store.read((await store.list())[0].id);
+    const prior = DatabaseSession.open(sqlite, new Uint8Array(snapshot.bytes), 'prior.qbase'); expect(prior.tables()).not.toContain('Table1'); prior.close();
+    await vi.waitFor(() => expect(button('Restore as new copy')).toBeDefined());
+    button('Add record').click(); root.querySelector('textarea')!.dispatchEvent(new Event('input', { bubbles: true }));
+    confirmDiscard.mockReturnValue(false); button('Restore as new copy').click();
+    await vi.waitFor(() => expect(confirmDiscard).toHaveBeenCalled());
+    expect(root.querySelector('h2')?.textContent).toBe('Sample.qbase'); expect(root.querySelector('textarea')).not.toBeNull();
+  });
+  it('reports automatic storage failures visibly and keeps committed edits editable', async () => {
+    const store = snapshots(); vi.spyOn(store, 'create').mockRejectedValue(new Error('Quota exceeded'));
+    const { root, button, registry } = setup(undefined, undefined, store);
+    button('Try sample database').click(); await vi.waitFor(() => expect(button('Create table').disabled).toBe(false));
+    registry.execute('recover.autoSnapshots');
+    button('Create table').click(); root.querySelector<HTMLFormElement>('.database-editor form')!.requestSubmit();
+    await vi.waitFor(() => expect(root.querySelector('.browser-snapshots [role=alert]')?.textContent).toContain('Quota exceeded'));
+    expect(root.textContent).toContain('Table1'); expect(registry.isAvailable('edit.undo')).toBe(true);
   });
 });

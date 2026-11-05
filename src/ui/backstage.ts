@@ -2,7 +2,7 @@ export const FILE_PAGES = [
   { title: 'Home', description: 'Your databases, together.', commands: [] },
   { title: 'New', description: 'Start with a blank database or a template.', commands: ['file.new', 'file.newFromTemplate', 'file.newFromSheet'] },
   { title: 'Open', description: 'Browse your device or return to a recent database.', commands: ['file.open', 'file.openReadOnly', 'file.openRecent'] },
-  { title: 'Info', description: 'Manage database properties, protection and backups.', commands: ['file.properties', 'file.backup', 'file.encrypt'] },
+  { title: 'Info', description: 'Manage database properties, protection and backups.', commands: ['file.properties', 'file.snapshots', 'file.backup', 'file.encrypt'] },
   { title: 'Save', description: 'Download a separate copy. This preview does not overwrite the original file.', commands: ['file.save', 'file.saveAs', 'file.saveDatabaseAs'] },
   { title: 'Print', description: 'Preview and print tables, forms and reports.', commands: ['file.print', 'file.printPreview', 'file.pageSetup'] },
   { title: 'Share', description: 'Send a database or publish it for others.', commands: ['file.share', 'file.email', 'file.publishServer'] },

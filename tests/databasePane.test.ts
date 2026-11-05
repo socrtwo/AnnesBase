@@ -250,4 +250,71 @@ describe('database workspace', () => {
     await vi.waitFor(() => expect(root.querySelector('tbody')?.textContent).toContain('Other tab customer'));
     expect(confirmDiscard).toHaveBeenCalledOnce();
   });
+
+  it('applies numeric sorting and filters, toggles/clears filters and focuses find through commands', async () => {
+    const { root, registry, button } = setup();
+    button('Try sample database').click(); await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Sample.qbase'));
+    button('Orders').click();
+    const select = (label: string, value: string) => {
+      const control = root.querySelector<HTMLSelectElement>(`.table-tools [aria-label="${label}"]`)!;
+      control.value = value; control.dispatchEvent(new Event('change')); return control;
+    };
+    select('Sort column', 'amount_cents'); registry.execute('sort.descending');
+    expect(root.querySelector('tbody tr')?.textContent).toContain('Desk lamp');
+    expect(root.querySelector('th[aria-sort="descending"]')?.textContent).toBe('amount_cents');
+    select('Filter column', 'amount_cents'); select('Filter condition', 'gte');
+    root.querySelector<HTMLInputElement>('[aria-label="Filter value"]')!.value = '1000';
+    root.querySelector<HTMLFormElement>('.table-view-form')!.requestSubmit();
+    expect(root.querySelectorAll('tbody tr')).toHaveLength(2);
+    registry.execute('filter.toggle'); expect(root.querySelectorAll('tbody tr')).toHaveLength(3);
+    registry.execute('filter.toggle'); expect(root.querySelectorAll('tbody tr')).toHaveLength(2);
+    registry.execute('edit.find'); expect(document.activeElement).toBe(root.querySelector('[aria-label="Find in table"]'));
+    root.querySelector<HTMLInputElement>('[aria-label="Find in table"]')!.value = 'notebook';
+    root.querySelector<HTMLFormElement>('.table-view-form')!.requestSubmit();
+    expect(root.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(root.querySelector('tbody')?.textContent).toContain('Notebook');
+    registry.execute('filter.clearAll'); expect(root.querySelectorAll('tbody tr')).toHaveLength(3);
+    registry.execute('sort.clear'); expect(root.querySelector('tbody tr')?.textContent).toContain('Notebook');
+    expect(root.querySelector('.change-history')?.textContent).toContain('No changes recorded');
+  });
+
+  it('edits the selected record identity correctly when it disappears from a filtered view', async () => {
+    const { root, registry, button } = setup();
+    button('Try sample database').click(); await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Sample.qbase'));
+    const filter = root.querySelector<HTMLSelectElement>('[aria-label="Filter column"]')!;
+    filter.value = 'name'; filter.dispatchEvent(new Event('change'));
+    root.querySelector<HTMLInputElement>('[aria-label="Filter value"]')!.value = 'Renée';
+    root.querySelector<HTMLFormElement>('.table-view-form')!.requestSubmit();
+    expect(root.querySelectorAll('tbody tr')).toHaveLength(1);
+    root.querySelector<HTMLInputElement>('[aria-label="Select record 2"]')!.click(); button('Edit selected').click();
+    root.querySelector<HTMLTextAreaElement>('.database-editor textarea')!.value = 'Changed matching record';
+    root.querySelector<HTMLFormElement>('.database-editor form')!.requestSubmit();
+    expect(root.querySelectorAll('tbody tr')).toHaveLength(0); expect(root.textContent).toContain('No matching records');
+    registry.execute('filter.clearAll');
+    root.querySelector<HTMLInputElement>('[aria-label="Select record 2"]')!.click(); button('Edit selected').click();
+    expect(root.querySelector<HTMLTextAreaElement>('.database-editor textarea')?.value).toBe('Changed matching record');
+    button('Cancel editing').click(); registry.execute('edit.undo');
+    expect(root.querySelector('tbody')?.textContent).toContain('Renée Example');
+    expect(root.querySelector('.change-history')?.textContent).not.toContain('createTable');
+  });
+
+  it('reports invalid filters and preserves a record draft when a view change is cancelled', async () => {
+    const { root, button, confirmDiscard } = setup();
+    button('Try sample database').click(); await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Sample.qbase'));
+    const filter = root.querySelector<HTMLSelectElement>('[aria-label="Filter column"]')!;
+    filter.value = 'id'; filter.dispatchEvent(new Event('change'));
+    root.querySelector<HTMLInputElement>('[aria-label="Filter value"]')!.value = 'bad number';
+    root.querySelector<HTMLFormElement>('.table-view-form')!.requestSubmit();
+    expect(root.querySelector('.table-tools [role=alert]')?.textContent).toContain('whole number');
+    expect(root.querySelectorAll('tbody tr')).toHaveLength(3);
+    root.querySelector<HTMLInputElement>('[aria-label="Filter value"]')!.value = '1';
+    root.querySelector<HTMLInputElement>('[aria-label="Select record 1"]')!.click(); button('Edit selected').click();
+    const draft = root.querySelector<HTMLTextAreaElement>('.database-editor textarea')!;
+    draft.value = 'Keep this draft'; draft.dispatchEvent(new Event('input', { bubbles: true }));
+    confirmDiscard.mockReturnValue(false);
+    root.querySelector<HTMLFormElement>('.table-view-form')!.requestSubmit();
+    expect(confirmDiscard).toHaveBeenCalledOnce();
+    expect(root.querySelector<HTMLTextAreaElement>('.database-editor textarea')?.value).toBe('Keep this draft');
+    expect(root.querySelectorAll('tbody tr')).toHaveLength(3);
+  });
 });

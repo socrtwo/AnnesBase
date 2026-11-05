@@ -106,6 +106,14 @@ main > p { font-size: 12px; }
 .recovery-list li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 0; font-size: 12px; }
 .recovery-list span { flex: 1; min-width: 160px; overflow-wrap: anywhere; }
 .recovery-list button { font-size: 12px; }
+.table-tools { padding: 16px 0; border-top: 1px solid #ddd; }
+.table-view-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: end; }
+.table-view-form label { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.table-view-form input, .table-view-form select { width: 100%; min-width: 0; padding: 8px; border: 1px solid #b1b1b1; border-radius: 5px; font: inherit; }
+.table-view-form input[type=checkbox] { width: auto; align-self: start; min-height: 30px; }
+.table-view-form input[type=search] { margin: 0; }
+.table-tools p { margin-bottom: 0; font-size: 12px; }
+.table-tools [role=alert] { color: #a12635; }
 .backstage { display: grid; grid-template-columns: 180px minmax(0, 1fr); min-height: calc(100vh - 90px); background: #fafafa; }
 .backstage-nav { background: var(--accent); padding: 16px 0; display: flex; flex-direction: column; align-items: stretch; }
 .backstage-nav button { color: white; border: 0; border-radius: 0; background: transparent; text-align: left; font-size: 14px; padding: 12px 28px; }
@@ -144,5 +152,6 @@ main > p { font-size: 12px; }
   .database-editor { padding: 14px; }
   .field-definition { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .record-field { grid-template-columns: minmax(0, 1fr) 72px; }
+  .table-view-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .backstage-content p { font-size: 13px; }
 }

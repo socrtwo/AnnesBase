@@ -12,6 +12,8 @@ import type { PreferenceStorage } from '../prefs';
 import { mountSnapshots } from './snapshots';
 import { IndexedDbSavedViewStore, type SavedViewStore } from '../storage/savedViews';
 import { mountSavedViews } from './savedViews';
+import { totalsRow } from './totalsRow';
+import type { TableTotals, TotalChoice } from '../engine/totals';
 
 export interface DatabaseDependencies {
   load: () => Promise<SqlJsStatic>;
@@ -71,6 +73,11 @@ export function mountDatabasePane(
   let recoveryBusy = false;
   let view: TableView = {};
   let filterEnabled = true;
+  let totalsEnabled = false;
+  let totalChoices: TotalChoice[] = [];
+  let dataRevision = 0;
+  let totalContext: { session: DatabaseSession | undefined; table: string | undefined } | undefined;
+  let totalCache: { key: string; result: TableTotals } | undefined;
   const effectiveView = () => ({ ...view, filter: filterEnabled ? view.filter : undefined, filters: filterEnabled ? view.filters : undefined });
   const resetView = () => { view = {}; filterEnabled = true; };
   const recoveryStore = dependencies.recovery;
@@ -128,7 +135,7 @@ export function mountDatabasePane(
   function apply(change: () => void) {
     if (busy) throw new Error('Wait for the database to finish loading.');
     const snapshot = snapshots?.beforeChange();
-    change();
+    change(); dataRevision++; totalCache = undefined;
     if (snapshot) snapshots?.saveAutomatic(snapshot);
     cancelEditing(); closeHistory(); selectedRecord = undefined;
     if (selected && !session!.tables().includes(selected)) { selected = session!.tables()[0]; offset = 0; resetView(); }
@@ -294,6 +301,23 @@ export function mountDatabasePane(
         body.append(tr);
       }
       table.append(caption, head, body);
+      let totals: ReturnType<typeof totalsRow> | undefined;
+      if (totalsEnabled) {
+        let result: TableTotals | undefined; let error = '';
+        try {
+          const key = JSON.stringify([dataRevision, effectiveView(), totalChoices]);
+          if (totalCache?.key === key) result = totalCache.result;
+          else { result = session.totals(selected, totalChoices, effectiveView()); totalCache = { key, result }; }
+        } catch (reason) { error = reason instanceof Error ? reason.message : String(reason); }
+        totals = totalsRow(session.columns(selected), editable, totalChoices, result, error, (column, operation) => {
+          if (busy || disposed) return;
+          totalChoices = totalChoices.filter(choice => choice.column !== column);
+          if (operation) totalChoices.push({ column, operation });
+          renderTable();
+          [...data.querySelectorAll<HTMLSelectElement>('tfoot select')].find(select => select.getAttribute('aria-label') === `Total for ${column}`)?.focus();
+        });
+        table.append(totals.footer);
+      }
       wrapper.append(table);
       const pagination = node('div');
       pagination.className = 'pagination';
@@ -306,11 +330,15 @@ export function mountDatabasePane(
       const range = page.rows.length ? `Rows ${offset + 1}–${offset + page.rows.length}` : view.search || filterConditions(view).length && filterEnabled ? 'No matching records' : 'No records';
       pagination.append(previous, node('span', range), next);
       data.append(wrapper, pagination);
+      if (totals) data.append(totals.summary, totals.note);
     } catch (error) { data.append(node('p', `Cannot read this table: ${error instanceof Error ? error.message : String(error)}`)); }
   }
 
   function render() {
     if (disposed) return;
+    if (totalContext?.session !== session || totalContext?.table !== selected) {
+      totalsEnabled = false; totalChoices = []; totalCache = undefined; totalContext = { session, table: selected };
+    }
     title.textContent = session ? session.name : 'Your database workspace';
     navigation.replaceChildren(node('h3', 'Tables'));
     for (const name of session?.tables() ?? []) {
@@ -357,6 +385,7 @@ export function mountDatabasePane(
     editButton.disabled = deleteButton.disabled = busy || !canEdit || !selectedRecord;
     undoButton.disabled = busy || !session?.canUndo();
     historyButton.disabled = busy || !canEdit;
+    totalsButton.disabled = busy || !session || !selected; totalsButton.setAttribute('aria-pressed', String(totalsEnabled));
   }
 
   async function replace(create: () => Promise<DatabaseSession>, recovered?: () => RecoveryMetadata | undefined) {
@@ -426,6 +455,10 @@ export function mountDatabasePane(
   const deleteButton = button('Delete selected', () => report(() => { if (!draftChanged || confirmDiscard()) apply(() => session!.deleteRecord(selected!, selectedRecord!)); }));
   const undoButton = button('Undo last change', () => report(() => { if (!draftChanged || confirmDiscard()) apply(() => session!.undo()); }));
   const historyButton = button('Record history', () => report(() => openRecordHistory()));
+  const totalsButton = button('Totals row', () => {
+    if (!session || !selected || busy) return;
+    showWorkspace(); totalsEnabled = !totalsEnabled; renderTable(); syncActions(); changed(session.name, busy);
+  });
   if (dependencies.snapshots) {
     snapshots = mountSnapshots(snapshotPanel, dependencies.snapshots, dependencies.snapshotPreferences,
       () => ({ session, documentId: snapshotDocumentId, busy, draftChanged }),
@@ -465,6 +498,7 @@ export function mountDatabasePane(
     ['filter.toggle', () => report(() => applyView(view, !filterEnabled)), () => filterConditions(view).length > 0 && !busy],
     ['filter.clearAll', () => report(() => applyView({ ...view, filter: undefined, filters: undefined, search: undefined }, true)), () => (filterConditions(view).length > 0 || !!view.search) && !busy],
     ['edit.find', () => { showWorkspace(); tools.querySelector<HTMLInputElement>('input[type=search]')?.focus(); }, () => !!session && !!selected && !busy],
+    ['record.totals', () => totalsButton.click(), () => !!session && !!selected && !busy],
     ['record.history', () => report(() => openRecordHistory()), () => !!session && !!selected && session.canEditTable(selected) && !busy],
   ] as const) registry.bind(id, handler, enabled);
   if (recoveryStore) registry.bind('file.openRecent', () => { showWorkspace(); recovery.scrollIntoView?.({ block: 'start' }); recoveryHeading.focus(); }, () => recoveryEntries.length > 0 && !busy);

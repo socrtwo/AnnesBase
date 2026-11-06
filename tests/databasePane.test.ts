@@ -547,3 +547,46 @@ it('guards a pending preset save and can remove other-table presets without chan
   expect(button('Load saved view').disabled).toBe(true); expect(button('Remove saved view').disabled).toBe(false); button('Remove saved view').click();
   await vi.waitFor(async () => expect(await store.list()).toHaveLength(0)); expect(root.querySelector('.datasheet')?.textContent).toContain('Notebook');
 });
+
+
+describe('totals row workspace', () => {
+  it('toggles totals, updates for filters/edits/undo and preserves an unsaved form', async () => {
+    const { root, registry, button } = setup(); button('Try sample database').click();
+    await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Sample.qbase')); button('Orders').click(); registry.execute('record.totals');
+    const total = root.querySelector<HTMLSelectElement>('[aria-label="Total for amount_cents"]')!; total.value = 'sum'; total.dispatchEvent(new Event('change'));
+    expect(root.querySelector('[data-total-column="amount_cents"]')?.textContent).toBe('6100');
+    expect(root.querySelector('.totals-summary')?.textContent).toContain('3 matching records');
+    expect(root.querySelector('.change-history')?.textContent).toContain('No changes recorded');
+    root.querySelector<HTMLInputElement>('[aria-label="Select record 1"]')!.click(); button('Edit selected').click();
+    const fields = root.querySelectorAll<HTMLTextAreaElement>('.database-editor textarea'); fields[2].value = '2000'; fields[2].dispatchEvent(new Event('input', { bubbles: true }));
+    registry.execute('record.totals'); expect(root.querySelector('.totals-row')).toBeNull();
+    expect(root.querySelectorAll<HTMLTextAreaElement>('.database-editor textarea')[2].value).toBe('2000'); registry.execute('record.totals');
+    expect(root.querySelector('[data-total-column="amount_cents"]')?.textContent).toBe('6100');
+    root.querySelector<HTMLFormElement>('.database-editor form')!.requestSubmit(); expect(root.querySelector('[data-total-column="amount_cents"]')?.textContent).toBe('6850');
+    registry.execute('edit.undo'); expect(root.querySelector('[data-total-column="amount_cents"]')?.textContent).toBe('6100');
+    const filter = root.querySelector<HTMLSelectElement>('[aria-label="Filter column"]')!; filter.value = 'customer_id'; filter.dispatchEvent(new Event('change'));
+    root.querySelector<HTMLInputElement>('[aria-label="Filter value"]')!.value = '1'; button('Apply view').click();
+    expect(root.querySelector('[data-total-column="amount_cents"]')?.textContent).toBe('1600'); expect(root.querySelector('.totals-summary')?.textContent).toContain('2 matching records');
+    registry.execute('filter.toggle'); expect(root.querySelector('[data-total-column="amount_cents"]')?.textContent).toBe('6100');
+    button('Customers').click(); expect(root.querySelector('.totals-row')).toBeNull();
+  });
+  it('retains full-result totals across pages without recomputing and leaves read-only tables unchanged', async () => {
+    const raw = new sqlite.Database(); raw.run('CREATE TABLE data (id INTEGER PRIMARY KEY, value INTEGER); BEGIN');
+    for (let index = 1; index <= 235; index++) raw.run('INSERT INTO data VALUES (?,?)', [index, index]);
+    raw.run('COMMIT'); const bytes = raw.export(); raw.close(); const { root, pane, button } = setup(); await pane.openFile(fileFrom(bytes, 'totals.sqlite'));
+    button('Totals row').click(); const select = root.querySelector<HTMLSelectElement>('[aria-label="Total for value"]')!; select.value = 'sum'; select.dispatchEvent(new Event('change'));
+    expect(root.querySelector('[data-total-column="value"]')?.textContent).toBe('27730');
+    const spy = vi.spyOn(DatabaseSession.prototype, 'totals');
+    button('Next page').click(); expect(root.querySelector('.totals-summary')?.textContent).toContain('235 matching records');
+    expect(root.querySelector('[data-total-column="value"]')?.textContent).toBe('27730'); expect(spy).not.toHaveBeenCalled(); spy.mockRestore();
+    expect(root.querySelectorAll('tbody tr')).toHaveLength(100); expect(button('Create table').disabled).toBe(true);
+  });
+  it('keeps the grid and other totals available when one integer sum overflows', async () => {
+    const raw = new sqlite.Database(); raw.run('CREATE TABLE data (id INTEGER PRIMARY KEY, value INTEGER); INSERT INTO data VALUES (1,9223372036854775807),(2,1)');
+    const bytes = raw.export(); raw.close(); const { root, pane, button } = setup(); await pane.openFile(fileFrom(bytes, 'overflow.sqlite')); button('Totals row').click();
+    for (const [column, operation] of [['id', 'count'], ['value', 'sum']]) {
+      const select = root.querySelector<HTMLSelectElement>(`[aria-label="Total for ${column}"]`)!; select.value = operation; select.dispatchEvent(new Event('change'));
+    }
+    expect(root.querySelector('.totals-row [role=alert]')?.textContent).toContain('64-bit'); expect(root.querySelector('[data-total-column="id"]')?.textContent).toBe('2'); expect(root.querySelectorAll('tbody tr')).toHaveLength(2);
+  });
+});

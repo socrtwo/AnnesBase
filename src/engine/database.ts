@@ -1,6 +1,7 @@
 import type { Database, SqlJsStatic } from 'sql.js';
 import { NativeJournal, type Field, type RecordValues } from './journal';
 import { columnKind, compileView, type TableColumn, type TableView } from './tableView';
+import { tableTotals, type TotalChoice } from './totals';
 
 export const MAX_DATABASE_BYTES = 32 * 1024 * 1024;
 export const PAGE_SIZE = 100;
@@ -87,6 +88,10 @@ export class DatabaseSession {
     // sql.js export reopens its connection and resets pragmas.
     try { return this.db.export(); }
     finally { this.db.run('PRAGMA query_only = ON'); }
+  }
+
+  totals(table: string, choices: TotalChoice[] = [], view: TableView = {}) {
+    return tableTotals(this.db, table, this.columns(table), choices, view);
   }
 
   get editable(): boolean { this.assertOpen(); return !!this.journal; }

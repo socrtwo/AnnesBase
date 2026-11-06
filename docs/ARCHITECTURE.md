@@ -206,6 +206,36 @@ drafts. Editing uses the selected primary-key id, so sorting or a filter that
 hides an edited row cannot redirect the write. View state is not journaled,
 autosaved or written into the database; table changes and restore reset it.
 
+## Datasheet totals
+
+`src/engine/totals.ts` compiles the same validated/bound WHERE expression as
+ordinary table views and runs read-only SQLite aggregates across the complete
+matching result. Neither page LIMIT/OFFSET nor sort order changes the total.
+Record count includes all matching rows; per-column Count excludes NULL. Empty
+sum/average/min/max results remain NULL and display as a dash. Supported operation
+choices depend on declared column kind; identifiers are catalog-validated and
+quoted, and aggregate names come from a fixed mapping.
+
+COUNT and integer SUM/MIN/MAX are read with BigInt. Integer overflow is reported
+per column, leaving matching-record count and other totals available. Numeric
+SUM/AVG first reject nonnumeric non-NULL stored values rather than accept
+SQLite's implicit conversion of text to zero. Nonfinite numeric results are also
+reported. Average and floating-point sums use SQLite arithmetic and are marked
+approximate. Text minimum/maximum follows the current SQLite storage types and
+collations. These are simple aggregates, not grouped queries or statistical
+variance/deviation calculations.
+
+`src/ui/totalsRow.ts` renders column selectors and results in a native table
+footer, with a full-result count and explanatory text. Long text/blob displays
+follow the viewer's bounded display convention. `databasePane.ts` binds
+`record.totals` to the workspace toggle and caches results by committed mutation
+revision, effective view and choices, so paging does not rescan the table. Writes
+invalidate the cache; switching session/table clears choices and hides the row.
+Changing a total or toggling the footer rerenders only the datasheet, preserving
+unfinished record forms and unapplied sort/filter controls. Uncommitted forms
+are excluded. Totals never add history, autosave writes or database changes, and
+are not currently included in saved view presets or downloads.
+
 ## Saved browser view library
 
 `src/storage/savedViews.ts` uses independent IndexedDB database

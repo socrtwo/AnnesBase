@@ -11,7 +11,7 @@ function worker(version = 'one', shared = new Map<string, Map<string, unknown>>(
     open: vi.fn(async (name: string) => {
       if (!shared.has(name)) shared.set(name, new Map());
       const store = shared.get(name)!;
-      return { put: async (request: Request, response: unknown) => { store.set(key(request), response); }, match: async (request: string | Request) => store.get(key(request)) };
+      return { put: async (request: Request, response: unknown) => { store.set(key(request), response); }, match: async (request: string | Request) => typeof request !== 'string' && request.headers?.get('Origin') ? undefined : store.get(key(request)) };
     }),
     keys: async () => [...shared.keys()], delete: vi.fn(async (name: string) => shared.delete(name)),
   };
@@ -69,4 +69,10 @@ describe('offline service worker', () => {
     await w.dispatch('message', { data: { type: 'ANNESBASE_REPAIR_OFFLINE' }, ports });
     expect(reply.mock.lastCall![0].ready).toBe(true);
   });
+});
+
+it('uses verified canonical URLs when module request headers differ from precache requests', async () => {
+  const w = worker(); await w.dispatch('install'); w.fetch.mockClear(); w.fetch.mockRejectedValue(new Error('Offline'));
+  const request = { url: new URL('assets/main.js', w.scope).href, method: 'GET', mode: 'cors', headers: new Headers({ Origin: 'https://example.test' }) };
+  expect(await w.dispatch('fetch', { request })).toMatchObject({ body: 'asset' }); expect(w.fetch).not.toHaveBeenCalled();
 });

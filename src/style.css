@@ -184,3 +184,8 @@ main > p { font-size: 12px; }
 .table-view-form legend { padding: 0 6px; font-weight: 600; }
 .sort-level, .filter-condition { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-items: end; margin-bottom: 12px; }
 @media (min-width: 700px) { .sort-level, .filter-condition { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+.saved-views { margin: 16px 0; padding: 16px; border: 1px solid #d1d1d1; border-radius: 5px; background: #f7f4f5; }
+.saved-views > input, .saved-views > select { display: block; width: 100%; max-width: 560px; min-width: 0; margin: 10px 0; padding: 8px; font: inherit; }
+.saved-views > button { margin: 4px 8px 4px 0; }
+.saved-views [role=alert] { color: #a12635; overflow-wrap: anywhere; }

@@ -8,6 +8,7 @@ import { createRegistry } from '../src/commands/registry';
 import { DatabaseSession } from '../src/engine/database';
 import { mountDatabasePane } from '../src/ui/databasePane';
 import { IDBFactory } from 'fake-indexeddb';
+import { IndexedDbSavedViewStore, type SavedViewStore } from '../src/storage/savedViews';
 import { IndexedDbRecoveryStore, type RecoveryStore } from '../src/storage/recovery';
 
 let sqlite: SqlJsStatic;
@@ -17,14 +18,14 @@ beforeAll(async () => {
 });
 afterEach(() => { cleanups.splice(0).forEach(cleanup => cleanup()); document.body.replaceChildren(); });
 
-function setup(load = async () => sqlite, recovery?: RecoveryStore, snapshots?: SnapshotStore) {
+function setup(load = async () => sqlite, recovery?: RecoveryStore, snapshots?: SnapshotStore, savedViews?: SavedViewStore) {
   const root = document.createElement('div');
   document.body.append(root);
   const registry = createRegistry();
   const download = vi.fn();
   const confirmDiscard = vi.fn(() => true);
   const changed = vi.fn();
-  const pane = mountDatabasePane(root, registry, changed, vi.fn(), { load, download, confirmDiscard, recovery, snapshots });
+  const pane = mountDatabasePane(root, registry, changed, vi.fn(), { load, download, confirmDiscard, recovery, snapshots, savedViews });
   cleanups.push(pane.dispose);
   const button = (label: string) => [...root.querySelectorAll('button')].find(button => button.textContent === label)!;
   return { root, registry, pane, download, changed, button, confirmDiscard };
@@ -472,4 +473,77 @@ describe('advanced table controls', () => {
     expect(root.querySelectorAll('.filter-condition')).toHaveLength(8); expect(button('Add filter condition').disabled).toBe(true);
     button('Remove filter condition 8').click(); expect(button('Add filter condition').disabled).toBe(false);
   });
+});
+
+
+describe('saved view workspace', () => {
+  const library = () => { const factory = new IDBFactory(); return new IndexedDbSavedViewStore(() => factory); };
+  it('saves applied settings, reloads them explicitly, renames/replaces and removes without changing records', async () => {
+    const store = library(); const { root, button, registry } = setup(undefined, undefined, undefined, store);
+    button('Try sample database').click(); await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Sample.qbase'));
+    registry.execute('filter.savedViews'); expect(document.activeElement?.textContent).toBe('Saved views');
+    const column = root.querySelector<HTMLSelectElement>('[aria-label="Filter column"]')!; column.value = 'city'; column.dispatchEvent(new Event('change'));
+    root.querySelector<HTMLInputElement>('[aria-label="Filter value"]')!.value = 'Boston'; button('Apply view').click();
+    root.querySelector<HTMLInputElement>('[aria-label="Saved view name"]')!.value = '<Boston view>';
+    button('Save applied view').click(); await vi.waitFor(async () => expect(await store.list()).toHaveLength(1));
+    await vi.waitFor(() => expect(button('Load saved view').disabled).toBe(false));
+    registry.execute('filter.clearAll'); expect(root.querySelectorAll('tbody tr')).toHaveLength(3);
+    button('Load saved view').click(); await vi.waitFor(() => expect(root.querySelectorAll('tbody tr')).toHaveLength(1));
+    expect(root.querySelector('tbody')?.textContent).toContain('Alex Example'); expect(root.querySelector('img')).toBeNull();
+    await vi.waitFor(() => expect(button('Replace selected view').disabled).toBe(false));
+    root.querySelector<HTMLInputElement>('[aria-label="Saved view name"]')!.value = 'Renamed view'; button('Replace selected view').click();
+    await vi.waitFor(async () => expect((await store.list())[0]).toMatchObject({ name: 'Renamed view', revision: 2 }));
+    await vi.waitFor(() => expect(button('Remove saved view').disabled).toBe(false)); button('Remove saved view').click();
+    await vi.waitFor(async () => expect(await store.list()).toHaveLength(0)); expect(root.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(root.querySelector('.change-history')?.textContent).toContain('No changes recorded');
+  });
+  it('keeps record drafts when loading is cancelled and rejects stale profile updates', async () => {
+    const store = library(); const { root, button, confirmDiscard } = setup(undefined, undefined, undefined, store);
+    button('Try sample database').click(); await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Sample.qbase'));
+    root.querySelector<HTMLInputElement>('[aria-label="Saved view name"]')!.value = 'Default'; button('Save applied view').click();
+    await vi.waitFor(() => expect(button('Load saved view').disabled).toBe(false));
+    button('Add record').click(); const draft = root.querySelector<HTMLTextAreaElement>('.database-editor textarea')!;
+    draft.value = 'Keep draft'; draft.dispatchEvent(new Event('input', { bubbles: true })); confirmDiscard.mockReturnValue(false);
+    button('Load saved view').click(); await vi.waitFor(() => expect(root.querySelector('.saved-views [role=status]')?.textContent).toContain('cancelled'));
+    expect(root.querySelector<HTMLTextAreaElement>('.database-editor textarea')!.value).toBe('Keep draft');
+    await vi.waitFor(() => expect(button('Replace selected view').disabled).toBe(false));
+    const saved = (await store.list())[0]; await store.update(saved.id, { ...saved, name: 'Other tab' }, 1);
+    await vi.waitFor(() => expect(button('Replace selected view').disabled).toBe(false)); button('Replace selected view').click();
+    await vi.waitFor(() => expect(root.querySelector('.saved-views [role=alert]')?.textContent).toContain('another tab'));
+    expect((await store.read(saved.id)).name).toBe('Other tab');
+  });
+  it('does not load a late result into a different database/table and disables incompatible layouts', async () => {
+    const store = library(); const { root, pane, button } = setup(undefined, undefined, undefined, store);
+    button('Try sample database').click(); await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Sample.qbase'));
+    root.querySelector<HTMLInputElement>('[aria-label="Saved view name"]')!.value = 'Customers'; button('Save applied view').click();
+    await vi.waitFor(() => expect(button('Load saved view').disabled).toBe(false)); const saved = (await store.list())[0];
+    let finish!: (result: typeof saved) => void; const delayed = new Promise<typeof saved>(resolve => { finish = resolve; });
+    vi.spyOn(store, 'read').mockReturnValueOnce(delayed); button('Load saved view').click(); button('Orders').click(); finish(saved);
+    await vi.waitFor(() => expect(root.querySelector('.saved-views [role=alert]')?.textContent).toContain('database or table changed'));
+    expect(root.querySelector('.datasheet')?.textContent).toContain('Notebook');
+    const raw = new sqlite.Database(); raw.run('CREATE TABLE Customers (id INTEGER PRIMARY KEY, city INTEGER)');
+    const bytes = raw.export(); raw.close(); await pane.openFile(fileFrom(bytes, 'different.sqlite'));
+    await vi.waitFor(() => expect(root.querySelector('.saved-views select')?.textContent).toContain('Different column layout'));
+    const choice = root.querySelector<HTMLSelectElement>('[aria-label="Saved views for this table"]')!; choice.value = saved.id; choice.dispatchEvent(new Event('change'));
+    expect(button('Load saved view').disabled).toBe(true); expect(button('Replace selected view').disabled).toBe(true); expect(button('Remove saved view').disabled).toBe(false);
+  });
+});
+
+
+it('guards a pending preset save and can remove other-table presets without changing records', async () => {
+  const factory = new IDBFactory(); const store = new IndexedDbSavedViewStore(() => factory);
+  const create = store.create.bind(store); let release!: () => void; const gate = new Promise<void>(resolve => { release = resolve; });
+  vi.spyOn(store, 'create').mockImplementationOnce(async definition => { await gate; return create(definition); });
+  const { root, button } = setup(undefined, undefined, undefined, store);
+  button('Try sample database').click(); await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Sample.qbase'));
+  root.querySelector<HTMLInputElement>('[aria-label="Saved view name"]')!.value = 'Pending preset'; button('Save applied view').click();
+  expect(root.querySelector('.saved-views [role=status]')?.textContent).toContain('Keep this page open');
+  const pending = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(pending); expect(pending.defaultPrevented).toBe(true);
+  release(); await vi.waitFor(() => expect(button('Save applied view').disabled).toBe(false));
+  const finished = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(finished); expect(finished.defaultPrevented).toBe(false);
+  button('Orders').click(); const checkbox = root.querySelector<HTMLInputElement>('.saved-views input[type=checkbox]')!; checkbox.click();
+  await vi.waitFor(() => expect(root.querySelector('.saved-views select')?.textContent).toContain('Pending preset'));
+  const choice = root.querySelector<HTMLSelectElement>('.saved-views select')!; choice.value = (await store.list())[0].id; choice.dispatchEvent(new Event('change'));
+  expect(button('Load saved view').disabled).toBe(true); expect(button('Remove saved view').disabled).toBe(false); button('Remove saved view').click();
+  await vi.waitFor(async () => expect(await store.list()).toHaveLength(0)); expect(root.querySelector('.datasheet')?.textContent).toContain('Notebook');
 });

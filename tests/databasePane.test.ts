@@ -431,3 +431,45 @@ describe('snapshot workspace', () => {
     expect(root.textContent).toContain('Table1'); expect(registry.isAvailable('edit.undo')).toBe(true);
   });
 });
+
+
+describe('advanced table controls', () => {
+  it('combines OR with Find, toggles the whole group and clears filters while retaining sort levels', async () => {
+    const { root, button, registry } = setup(); button('Try sample database').click();
+    await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Sample.qbase'));
+    const select = (name: string, value: string) => { const control = root.querySelector<HTMLSelectElement>(`[aria-label="${name}"]`)!; control.value = value; control.dispatchEvent(new Event('change')); };
+    const input = (name: string, value: string) => { root.querySelector<HTMLInputElement>(`[aria-label="${name}"]`)!.value = value; };
+    select('Sort column', 'city'); button('Add sort level').click(); select('Then sort column 2', 'name');
+    select('Filter column', 'city'); input('Filter value', 'Boston'); button('Add filter condition').click();
+    select('Filter column 2', 'name'); input('Filter value 2', 'Renée'); select('Match filter conditions', 'any');
+    input('Find in table', 'Example'); button('Apply view').click();
+    expect(root.querySelectorAll('tbody tr')).toHaveLength(2);
+    expect(root.querySelector('[aria-label="Then sort column 2"]')).not.toBeNull();
+    registry.execute('filter.toggle'); expect(root.querySelectorAll('tbody tr')).toHaveLength(3);
+    registry.execute('filter.toggle'); expect(root.querySelectorAll('tbody tr')).toHaveLength(2);
+    registry.execute('sort.descending');
+    expect(root.querySelector<HTMLSelectElement>('[aria-label="Sort direction"]')!.value).toBe('DESC');
+    expect(root.querySelector<HTMLSelectElement>('[aria-label="Then sort column 2"]')!.value).toBe('name');
+    registry.execute('filter.clearAll'); expect(root.querySelectorAll('tbody tr')).toHaveLength(3);
+    expect(root.querySelector('[aria-label="Filter column 2"]')).toBeNull();
+    expect(root.querySelector('[aria-label="Then sort column 2"]')).not.toBeNull();
+    registry.execute('sort.clear'); expect(root.querySelector('[aria-label="Then sort column 2"]')).toBeNull();
+    expect(root.querySelector('.change-history')?.textContent).toContain('No changes recorded');
+  });
+  it('reorders/removes levels, validates duplicates and respects limits and command focus', async () => {
+    const { root, button, registry } = setup(); button('Try sample database').click();
+    await vi.waitFor(() => expect(root.querySelector('h2')?.textContent).toBe('Sample.qbase'));
+    registry.execute('sort.advanced'); expect(document.activeElement?.getAttribute('aria-label')).toBe('Sort column');
+    button('Add sort level').click();
+    const second = root.querySelector<HTMLSelectElement>('[aria-label="Then sort column 2"]')!; second.value = 'name';
+    button('Move sort level 2 up').click(); expect(root.querySelector<HTMLSelectElement>('[aria-label="Sort column"]')!.value).toBe('name');
+    button('Remove sort level 2').click(); expect(root.querySelector('[aria-label="Then sort column 2"]')).toBeNull();
+    button('Add sort level').click(); root.querySelector<HTMLSelectElement>('[aria-label="Then sort column 2"]')!.value = 'name';
+    button('Apply view').click(); expect(root.querySelector('.table-tools [role=alert]')?.textContent).toContain('only once');
+    expect(root.querySelectorAll('tbody tr')).toHaveLength(3);
+    registry.execute('filter.advanced'); expect(document.activeElement?.getAttribute('aria-label')).toBe('Filter column');
+    for (let i = 1; i < 8; i++) button('Add filter condition').click();
+    expect(root.querySelectorAll('.filter-condition')).toHaveLength(8); expect(button('Add filter condition').disabled).toBe(true);
+    button('Remove filter condition 8').click(); expect(button('Add filter condition').disabled).toBe(false);
+  });
+});

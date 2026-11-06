@@ -179,3 +179,8 @@ main > p { font-size: 12px; }
 .app-availability p { margin: 8px 0; }
 .app-availability button { margin: 4px 8px 4px 0; }
 .offline-help { color: #616161; font-size: 12px; max-width: 80ch; }
+
+.table-view-form fieldset { grid-column: 1 / -1; min-width: 0; padding: 12px; border: 1px solid #d1d1d1; border-radius: 5px; }
+.table-view-form legend { padding: 0 6px; font-weight: 600; }
+.sort-level, .filter-condition { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-items: end; margin-bottom: 12px; }
+@media (min-width: 700px) { .sort-level, .filter-condition { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

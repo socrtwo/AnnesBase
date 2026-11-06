@@ -37,8 +37,10 @@ self.addEventListener('fetch', event => {
   if (!isEntry && !urls.has(url.href)) return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
-    // Whitelisted files only; no runtime caching of databases, APIs or external URLs.
-    return await cache.match(isEntry ? entry : request) ?? fetch(request);
+    // Canonical URLs match the verified install requests even when a static
+    // server sends Vary: Origin and module requests carry an Origin header.
+    // Whitelisted files only; no runtime caching of user databases or APIs.
+    return await cache.match(isEntry ? entry : url.href) ?? fetch(request);
   })());
 });
 self.addEventListener('message', event => {

@@ -10,6 +10,8 @@ import { showRecordHistory } from './recordHistory';
 import { IndexedDbSnapshotStore, type SnapshotStore } from '../storage/snapshots';
 import type { PreferenceStorage } from '../prefs';
 import { mountSnapshots } from './snapshots';
+import { IndexedDbSavedViewStore, type SavedViewStore } from '../storage/savedViews';
+import { mountSavedViews } from './savedViews';
 
 export interface DatabaseDependencies {
   load: () => Promise<SqlJsStatic>;
@@ -17,11 +19,13 @@ export interface DatabaseDependencies {
   confirmDiscard?: () => boolean;
   recovery?: RecoveryStore;
   snapshots?: SnapshotStore;
+  savedViews?: SavedViewStore;
   snapshotPreferences?: PreferenceStorage;
 }
 const defaultDependencies: DatabaseDependencies = {
   recovery: new IndexedDbRecoveryStore(),
   snapshots: new IndexedDbSnapshotStore(),
+  savedViews: new IndexedDbSavedViewStore(),
   snapshotPreferences: { getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value) },
   load: async () => (await import('../engine/browser')).loadSqlite(),
   download: (bytes, name) => {
@@ -59,6 +63,8 @@ export function mountDatabasePane(
   let snapshotDocumentId: string | undefined;
   let snapshots: ReturnType<typeof mountSnapshots> | undefined;
   const snapshotPanel = node('section'); snapshotPanel.hidden = true;
+  const savedViewsPanel = node('section'); savedViewsPanel.hidden = true;
+  let savedViews: ReturnType<typeof mountSavedViews> | undefined;
   let recoveryEntries: RecoveryMetadata[] = [];
   let recoveryError = '';
   let listing = 0;
@@ -114,7 +120,7 @@ export function mountDatabasePane(
   const confirmDiscard = () => (dependencies.confirmDiscard ?? (() => window.confirm('There are unsaved changes. Discard those changes?')))();
   const discard = () => !needsProtection() || confirmDiscard();
   const beforeUnload = (event: BeforeUnloadEvent) => {
-    if (needsProtection() || snapshots?.isSaving) { event.preventDefault(); event.returnValue = ''; }
+    if (needsProtection() || snapshots?.isSaving || savedViews?.isSaving) { event.preventDefault(); event.returnValue = ''; }
   };
   window.addEventListener('beforeunload', beforeUnload);
   editing.addEventListener('input', () => { draftChanged = true; renderRecovery(); snapshots?.contextChanged(); });
@@ -232,11 +238,11 @@ export function mountDatabasePane(
     return text.length > 2000 ? text.slice(0, 2000) + '… [display shortened]' : text;
   };
   function applyView(next: TableView, enabled = filterEnabled) {
-    if (!session || !selected || busy) return;
+    if (!session || !selected || busy) return false;
     session.page(selected, 0, next);
-    if (draftChanged && !confirmDiscard()) return;
+    if (draftChanged && !confirmDiscard()) return false;
     cancelEditing(); closeHistory(); view = next; filterEnabled = enabled; offset = 0; selectedRecord = undefined;
-    render();
+    render(); return true;
   }
   function sortView(direction: 'ASC' | 'DESC') {
     if (!session || !selected) return;
@@ -340,6 +346,7 @@ export function mountDatabasePane(
     renderTable();
     renderRecovery();
     snapshots?.contextChanged();
+    savedViews?.contextChanged();
     changed(session?.name, busy);
   }
   function syncActions() {
@@ -431,6 +438,12 @@ export function mountDatabasePane(
     registry.bind('file.snapshots', () => { showWorkspace(); snapshots!.show(); }, () => !busy);
     registry.bind('recover.autoSnapshots', () => { showWorkspace(); snapshots!.show(); snapshots!.toggleAutomatic(); }, () => !busy);
   }
+  if (dependencies.savedViews) {
+    savedViews = mountSavedViews(savedViewsPanel, dependencies.savedViews,
+      () => session && selected ? { identity: session, sourceName: session.name, table: selected, columns: session.columns(selected), view, filterEnabled, busy } : undefined,
+      applyView);
+    registry.bind('filter.savedViews', () => { showWorkspace(); savedViews!.show(); }, () => !!session && !!selected && !busy);
+  }
   input.addEventListener('change', () => { const file = input.files?.[0]; input.value = ''; const readOnly = openAsReadOnly; openAsReadOnly = false; if (file) void openFile(file, readOnly); });
   for (const [id, handler, enabled] of [
     ['file.new', () => newButton.click(), () => !busy],
@@ -456,9 +469,9 @@ export function mountDatabasePane(
   ] as const) registry.bind(id, handler, enabled);
   if (recoveryStore) registry.bind('file.openRecent', () => { showWorkspace(); recovery.scrollIntoView?.({ block: 'start' }); recoveryHeading.focus(); }, () => recoveryEntries.length > 0 && !busy);
   grid.append(navigation, data);
-  pane.append(title, message, actions, input, recovery, snapshotPanel, editing, recordHistory, tools, grid, history, note);
+  pane.append(title, message, actions, input, recovery, snapshotPanel, editing, recordHistory, tools, savedViewsPanel, grid, history, note);
   container.append(pane);
   render();
   void refreshRecovery();
-  return { openFile, dispose: () => { disposed = true; snapshots?.dispose(); window.removeEventListener('beforeunload', beforeUnload); session?.close(); session = undefined; autosave = undefined; } };
+  return { openFile, dispose: () => { disposed = true; snapshots?.dispose(); savedViews?.dispose(); window.removeEventListener('beforeunload', beforeUnload); session?.close(); session = undefined; autosave = undefined; } };
 }

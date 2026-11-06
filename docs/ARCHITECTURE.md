@@ -199,12 +199,48 @@ removed; filter conditions can be removed individually. The advanced sort and
 filter commands focus these controls. Ascending/Descending modifies the first
 sort priority while retaining applied secondary levels, Remove Sort clears every key, and
 the filter toggle/clear commands act on the entire group. All conditions are
-validated even when the group is disabled. Nested groups, saved filters and
+validated even when the group is disabled. Nested groups, saved query objects and
 custom value-list sorting remain future work. Invalid filters leave the current view intact. Applied view
 changes reset pagination and record selection and respect unfinished editor
 drafts. Editing uses the selected primary-key id, so sorting or a filter that
 hides an edited row cannot redirect the write. View state is not journaled,
 autosaved or written into the database; table changes and restore reset it.
+
+## Saved browser view library
+
+`src/storage/savedViews.ts` uses independent IndexedDB database
+`annesbase.views.v1`. Each versioned entry contains a bounded, canonical view
+definition, table/column metadata, source file name, name and revision. It stores
+no SQLite bytes or SQL statements. The compiler validates every definition,
+including disabled filters, and reads reject unsupported/corrupt versions.
+Canonicalization strips unknown properties and converts the legacy single-sort/
+single-filter API into the current array/group form. The library is limited to
+200 definitions, each at most 256 KiB, with names of 1–80 characters.
+
+Compatibility compares table name and ordered column names, declared types,
+primary-key positions and inferred kinds. This is a column-layout match, not a
+database identity or SQL-schema/collation comparison. It intentionally permits
+explicit reuse across matching native and read-only files. Source filenames are
+annotations. A unique index enforces case-insensitive names per layout; revisions
+are checked inside write transactions before replacement/deletion. Conflicts,
+quota failures and duplicate names leave previous definitions intact. Recovery
+and snapshot stores do not need migration and are never changed by this library.
+
+`src/ui/savedViews.ts` saves only the applied view; unsubmitted table-control
+changes and unfinished record drafts are excluded. Loading re-reads the selected
+entry, checks its revision and column layout, and validates the SQL against the
+current session before using the existing pending-draft guard. A late read cannot
+apply to another database/table. The current active view resets on table/file
+changes; presets never load automatically. Rename/replacement uses the explicit
+Replace button, and removal leaves the applied view and records untouched.
+Other-table/incompatible entries can be shown for library cleanup. Refresh is
+explicit, and disposal invalidates asynchronous UI callbacks. Pending library
+writes retain the leave-page guard; success is shown only after commit.
+
+Saved presets stay in browser profile/origin storage, including while offline.
+They include literal filter/search values and are not embedded in downloads,
+recovery copies or snapshots. Export/import, query objects, grouping, hidden
+fields and column ordering are not included in this feature.
 
 ## Browser autosave and recovery
 
@@ -302,7 +338,9 @@ hashed assets should remain available while clients finish updating.
 
 Fetch interception is restricted to GET requests for the exact precache allowlist
 and the app's root/index navigation (query strings on the entry are supported).
-Known files use cache-first responses. Other navigations, APIs, database files,
+Known files use cache-first responses by their canonical verified URL, so
+static-server Vary: Origin headers cannot cause module requests to miss the
+precache solely because they carry different Origin headers. Other navigations, APIs, database files,
 external requests and non-GET requests retain ordinary network behavior. No user
 database bytes enter the service-worker cache or background upload queue.
 

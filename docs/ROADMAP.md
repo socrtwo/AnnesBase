@@ -39,7 +39,8 @@
   - [x] Basic table creation (Text, Whole number, Decimal number, non-null fields, automatic integer primary key), record insert/update/delete, null controls and sequential undo; pending-edit and draft guards.
   - [x] Single-column sort, typed column filters, NULL conditions, literal find across text/numbers, filter toggle/clear, stable paged ordering and shared command bindings; works on read-only SQLite too.
   - [x] Multi-column sorting with up to five ordered priorities, reordering/removal, and up to eight typed filter conditions combined with All/Any; literal Find intersects the complete group. Shared advanced command bindings, whole-group toggle/clear, stable paging and draft guards work on native and read-only files.
-  - [ ] Existing-table schema design, remaining field types, validation/index/lookup designers, virtualized large-data grids, custom sort lists, nested condition groups, saved filters and the remaining record commands.
+  - [x] Named browser view presets preserve applied sort/filter/Find/toggle settings, with explicit loading, replace/rename/remove, schema compatibility checks, cross-tab revision protection, visible storage errors and read-only/offline reuse. Presets remain separate from native files.
+  - [ ] Existing-table schema design, remaining field types, validation/index/lookup designers, virtualized large-data grids, custom sort lists, nested condition groups, saved query objects and the remaining record commands.
 - Undo Delete, Record History, Show Table as of (the journal's first uses).
   - [x] Global Undo restores deletions and previous row values; the latest 100 journal entries are visible in Change history.
   - [x] Per-record before/after history with older-page loading, deleted-record id lookup and selective restore as a new undoable change; history and restore survive download/reload.
